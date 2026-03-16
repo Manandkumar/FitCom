@@ -1,5 +1,5 @@
 # -------------------------------------------------------
-# FitCom - OCR Engine
+# FitCom - Enhanced OCR Engine
 # Author: Anand Kumar
 # -------------------------------------------------------
 
@@ -16,20 +16,18 @@ def preprocess_image(pil_image):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Increase contrast
-    gray = cv2.convertScaleAbs(gray, alpha=2, beta=0)
+    gray = cv2.convertScaleAbs(gray, alpha=2.5, beta=20)
 
     # Remove noise
     blur = cv2.GaussianBlur(gray, (3,3), 0)
 
     # Threshold
-    thresh = cv2.adaptiveThreshold(
+    thresh = cv2.threshold(
         blur,
+        0,
         255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        11,
-        2
-    )
+        cv2.THRESH_BINARY + cv2.THRESH_OTSU
+    )[1]
 
     return thresh
 
@@ -38,9 +36,12 @@ def extract_text(pil_image):
 
     processed = preprocess_image(pil_image)
 
+    # OCR configuration
+    custom_config = r'--oem 3 --psm 6'
+
     text = pytesseract.image_to_string(
         processed,
-        config="--oem 3 --psm 6"
+        config=custom_config
     )
 
     return text
