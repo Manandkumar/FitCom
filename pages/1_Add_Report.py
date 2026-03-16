@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import pandas as pd
 import uuid
@@ -6,92 +7,165 @@ import os
 from datetime import datetime
 from storage import save_report
 from sidebar import render_sidebar
-render_sidebar()
 
-FILE_NAME = "fitcom_reports.csv"
+# ------------------------------------------------------------
+# Sidebar
+# ------------------------------------------------------------
+
+render_sidebar()
 
 st.title("➕ Add Body Composition Report")
 
 # ------------------------------------------------------------
-# Utility Function
+# Constants
+# ------------------------------------------------------------
+
+FILE_NAME = "fitcom_reports.csv"
+
+# ------------------------------------------------------------
+# Utility Functions
 # ------------------------------------------------------------
 
 def calculate_bmi(weight, height_in):
+    """Calculate BMI using weight (kg) and height (inches)"""
 
     if height_in == 0:
         return 0
 
     height_m = height_in * 0.0254
-    return round(weight / (height_m ** 2), 2)
+    bmi = weight / (height_m ** 2)
+
+    return round(bmi, 2)
+
+
+def save_uploaded_image(uploaded_file):
+    """
+    Save uploaded image safely
+    Handles RGBA / PNG images correctly
+    """
+
+    try:
+
+        image = Image.open(uploaded_file)
+
+        # Convert incompatible modes
+        if image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
+
+        os.makedirs("profiles", exist_ok=True)
+
+        filename = f"{uuid.uuid4()}.jpg"
+
+        path = os.path.join("profiles", filename)
+
+        image.save(path, format="JPEG")
+
+        return path, image
+
+    except Exception as e:
+
+        st.error("Error saving image")
+
+        return None, None
+
 
 # ------------------------------------------------------------
-# Selfie Upload
+# Selfie Upload Section
 # ------------------------------------------------------------
 
 st.subheader("User Profile")
 
-selfie = st.file_uploader(
+uploaded_selfie = st.file_uploader(
     "Upload Selfie",
-    type=["jpg","png","jpeg"]
+    type=["jpg", "jpeg", "png"]
 )
 
-image = None
+photo_path = None
+preview_image = None
 
-if selfie:
-    image = Image.open(selfie)
-    st.image(image, width=200)
+if uploaded_selfie:
+
+    photo_path, preview_image = save_uploaded_image(uploaded_selfie)
+
+    if preview_image:
+        st.image(preview_image, width=200)
+
 
 # ------------------------------------------------------------
 # User Inputs
 # ------------------------------------------------------------
 
+st.subheader("Body Composition Data")
+
 name = st.text_input("Name")
 
-age = st.number_input("Age", 10, 100)
-
-height = st.number_input("Height (inches)", 48, 90)
-
-weight = st.number_input("Weight (kg)", 30.0, 200.0)
-
-bmi_auto = calculate_bmi(weight, height)
-
-bmi = st.number_input(
-    "BMI",
-    value=float(bmi_auto)
+age = st.number_input(
+    "Age",
+    min_value=10,
+    max_value=100,
+    value=25
 )
 
-bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
+height = st.number_input(
+    "Height (inches)",
+    min_value=48,
+    max_value=90,
+    value=65
+)
 
-muscle = st.number_input("Muscle Mass", 10.0, 100.0)
+weight = st.number_input(
+    "Weight (kg)",
+    min_value=30.0,
+    max_value=200.0,
+    value=70.0
+)
 
-visceral = st.number_input("Visceral Fat", 1.0, 50.0)
+# Auto BMI Calculation
+bmi = calculate_bmi(weight, height)
 
-bodywater = st.number_input("Body Water %", 1.0, 80.0)
+st.metric("Calculated BMI", bmi)
+
+bodyfat = st.number_input(
+    "Body Fat %",
+    min_value=1.0,
+    max_value=60.0,
+    value=20.0
+)
+
+muscle = st.number_input(
+    "Muscle Mass",
+    min_value=10.0,
+    max_value=100.0,
+    value=40.0
+)
+
+visceral = st.number_input(
+    "Visceral Fat",
+    min_value=1.0,
+    max_value=50.0,
+    value=10.0
+)
+
+bodywater = st.number_input(
+    "Body Water %",
+    min_value=1.0,
+    max_value=80.0,
+    value=50.0
+)
 
 # ------------------------------------------------------------
-# Save Report
+# Save Report Button
 # ------------------------------------------------------------
 
-if st.button("Save Report"):
+st.divider()
+
+if st.button("💾 Save Report"):
 
     if not name:
 
-        st.error("Name required")
+        st.error("⚠️ Name is required")
 
     else:
-
-        photo_path = None
-
-        # Save selfie if uploaded
-        if image:
-
-            os.makedirs("profiles", exist_ok=True)
-
-            filename = str(uuid.uuid4()) + ".jpg"
-
-            photo_path = f"profiles/{filename}"
-
-            image.save(photo_path)
 
         report = {
             "Name": name,
@@ -107,6 +181,13 @@ if st.button("Save Report"):
             "BodyWater": bodywater
         }
 
-        save_report(name, report)
+        try:
 
-        st.success("Report saved successfully")
+            save_report(name, report)
+
+            st.success("✅ Report saved successfully")
+
+        except Exception as e:
+
+            st.error("Error saving report")
+```
