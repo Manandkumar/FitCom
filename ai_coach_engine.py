@@ -1,49 +1,43 @@
 # ============================================================
-# FitCom - AI Health Coach Engine
+# Syntra AI Health Coach Engine
 # Author: Anand Kumar
-#
-# Description:
-# Generates health insights based on body composition
-# metrics entered in FitCom.
-#
-# The logic is rule-based and designed to mimic a
-# lightweight AI health advisor.
 # ============================================================
 
-
-# ------------------------------------------------------------
-# Generate Advice
-# ------------------------------------------------------------
-# Produces personalized recommendations.
-#
-# Returns
-# -------
-# list[str]
-# ------------------------------------------------------------
-
-def generate_advice(row):
+def generate_ai_advice(row):
 
     advice = []
 
-    if row["BMI"] > 25:
-        advice.append("Your BMI is above the optimal range. Consider gradual fat reduction.")
+    bmi = row["BMI"]
+    bodyfat = row["BodyFat"]
+    muscle = row["MuscleMass"]
+    water = row["BodyWater"]
+    visceral = row["VisceralFat"]
 
-    elif row["BMI"] < 18.5:
-        advice.append("BMI indicates underweight. Focus on muscle gain and nutrition.")
+    # BMI analysis
+    if bmi > 25:
+        advice.append("Your BMI is slightly high. Focus on fat reduction through cardio and calorie balance.")
+    elif bmi < 18:
+        advice.append("Your BMI is low. Consider increasing protein intake and resistance training.")
 
-    if row["BodyFat"] > 20:
-        advice.append("Body fat percentage slightly high. Add cardio workouts.")
+    # Body fat analysis
+    if bodyfat > 20:
+        advice.append("Body fat is above optimal. Increase daily activity and monitor nutrition quality.")
+    else:
+        advice.append("Body fat is within a healthy range. Maintain current training consistency.")
 
-    if row["MuscleMass"] > 45:
-        advice.append("Excellent muscle mass for your height.")
+    # Muscle analysis
+    if muscle < 30:
+        advice.append("Muscle mass is lower than ideal. Strength training 3–4 times per week is recommended.")
 
-    if row["VisceralFat"] > 10:
-        advice.append("Visceral fat elevated. Reduce processed foods and increase activity.")
+    # Hydration
+    if water < 50:
+        advice.append("Body water percentage indicates possible dehydration. Increase daily water intake.")
 
-    if row["BodyWater"] < 50:
-        advice.append("Body hydration appears low. Increase daily water intake.")
+    # Visceral fat
+    if visceral > 10:
+        advice.append("Visceral fat is elevated. Prioritize sleep, reduce sugar intake, and maintain regular workouts.")
 
     if not advice:
-        advice.append("Your body composition is within a healthy range. Keep maintaining your routine.")
+        advice.append("Your body composition is balanced. Continue maintaining your current routine.")
 
     return advice
