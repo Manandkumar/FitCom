@@ -17,7 +17,7 @@ from sidebar import render_sidebar
 
 render_sidebar()
 
-st.title("➕ Add Body Composition Report")
+st.title("➕ Add New Member's Body Composition Report")
 
 # -------------------------------------------------------
 # Utility Functions
