@@ -7,6 +7,29 @@ render_sidebar()
 
 FILE_NAME = "fitcom_reports.csv"
 
+# ------------------------------------------------------------
+# Page Styling
+# ------------------------------------------------------------
+
+st.markdown("""
+<style>
+
+table {
+    font-size:16px !important;
+}
+
+thead th {
+    text-align:center !important;
+    font-size:18px !important;
+}
+
+tbody td {
+    text-align:center !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🏆 FitCom Leaderboard")
 
 # ------------------------------------------------------------
@@ -33,6 +56,52 @@ def calculate_fitness_score(row):
 
 
 # ------------------------------------------------------------
+# Health Indicator Functions
+# ------------------------------------------------------------
+
+def bmi_indicator(bmi):
+
+    if bmi < 18.5:
+        return "🟡"
+
+    elif bmi <= 24.9:
+        return "🟢"
+
+    elif bmi <= 29.9:
+        return "🟡"
+
+    else:
+        return "🔴"
+
+
+def bodyfat_indicator(bodyfat):
+
+    if bodyfat <= 15:
+        return "🟢"
+
+    elif bodyfat <= 20:
+        return "🟢"
+
+    elif bodyfat <= 25:
+        return "🟡"
+
+    else:
+        return "🔴"
+
+
+def visceral_indicator(visceral):
+
+    if visceral <= 9:
+        return "🟢"
+
+    elif visceral <= 14:
+        return "🟡"
+
+    else:
+        return "🔴"
+
+
+# ------------------------------------------------------------
 # Load Data
 # ------------------------------------------------------------
 
@@ -41,49 +110,8 @@ if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
 
     # ------------------------------------------------------------
-    # Most Improved Athlete
+    # Latest record per athlete
     # ------------------------------------------------------------
-
-    st.subheader("🔥 Most Improved Athlete")
-
-    improvements = []
-
-    for athlete in df["Name"].unique():
-
-        athlete_df = df[df["Name"] == athlete].sort_values("Date")
-
-        if len(athlete_df) > 1:
-
-            start_fat = athlete_df.iloc[0]["BodyFat"]
-            end_fat = athlete_df.iloc[-1]["BodyFat"]
-
-            improvement = start_fat - end_fat
-
-            improvements.append({
-                "Name": athlete,
-                "FatLoss": improvement
-            })
-
-    if improvements:
-
-        imp_df = pd.DataFrame(improvements)
-
-        best = imp_df.sort_values("FatLoss", ascending=False).iloc[0]
-
-        st.success(
-            f"🏆 {best['Name']} improved the most with {round(best['FatLoss'],2)}% body fat reduction."
-        )
-
-    else:
-
-        st.info("Add multiple reports to calculate improvement.")
-
-
-    # ------------------------------------------------------------
-    # Leaderboard (Latest record per user)
-    # ------------------------------------------------------------
-
-    st.subheader("🏅 Fitness Leaderboard")
 
     latest_df = (
         df.sort_values("Date")
@@ -95,37 +123,105 @@ if os.path.exists(FILE_NAME):
 
     leaderboard = latest_df.sort_values("FitnessScore", ascending=False)
 
-    athletes = leaderboard.to_dict("records")
+    athletes = leaderboard["Name"].tolist()
 
-    cols = st.columns(len(athletes))
+    # ------------------------------------------------------------
+    # Build Vertical Table
+    # ------------------------------------------------------------
 
-    for col, athlete in zip(cols, athletes):
+    rows = []
 
-        with col:
+    # PHOTO ROW
+    photo_row = {"Metric": "Photo"}
 
-            # Photo
-            if "Photo" in athlete and pd.notna(athlete["Photo"]):
+    for _, row in leaderboard.iterrows():
 
-                if os.path.exists(athlete["Photo"]):
+        photo_path = row.get("Photo", "")
 
-                    st.image(athlete["Photo"], width=120)
+        if pd.notna(photo_path) and os.path.exists(photo_path):
+            photo_html = f"<img src='{photo_path}' width='70'>"
+        else:
+            photo_html = "—"
 
-            else:
-                st.image(
-                    "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-                    width=120
-                )
+        photo_row[row["Name"]] = photo_html
 
-            # Name
-            st.markdown(f"### {athlete['Name']}")
+    rows.append(photo_row)
 
-            # Score
-            st.metric("🏆 Fitness Score", athlete["FitnessScore"])
+    # FITNESS SCORE
+    score_row = {"Metric": "Fitness Score"}
 
-            # Metrics
-            st.metric("⚖️ BMI", athlete["BMI"])
-            st.metric("🔥 Body Fat %", athlete["BodyFat"])
-            st.metric("💪 Muscle", athlete["MuscleMass"])
+    for _, row in leaderboard.iterrows():
+        score_row[row["Name"]] = row["FitnessScore"]
+
+    rows.append(score_row)
+
+    # WEIGHT
+    weight_row = {"Metric": "Weight"}
+
+    for _, row in leaderboard.iterrows():
+        weight_row[row["Name"]] = row.get("Weight","NA")
+
+    rows.append(weight_row)
+
+    # BMI
+    bmi_row = {"Metric": "BMI"}
+
+    for _, row in leaderboard.iterrows():
+        bmi = row.get("BMI","NA")
+        bmi_row[row["Name"]] = f"{bmi} {bmi_indicator(bmi)}"
+
+    rows.append(bmi_row)
+
+    # BODY FAT
+    fat_row = {"Metric": "Body Fat"}
+
+    for _, row in leaderboard.iterrows():
+        bf = row.get("BodyFat","NA")
+        fat_row[row["Name"]] = f"{bf} {bodyfat_indicator(bf)}"
+
+    rows.append(fat_row)
+
+    # MUSCLE
+    muscle_row = {"Metric": "Muscle Mass"}
+
+    for _, row in leaderboard.iterrows():
+        muscle_row[row["Name"]] = row.get("MuscleMass","NA")
+
+    rows.append(muscle_row)
+
+    # BODY WATER
+    water_row = {"Metric": "Body Water"}
+
+    for _, row in leaderboard.iterrows():
+        water_row[row["Name"]] = row.get("BodyWater","NA")
+
+    rows.append(water_row)
+
+    # VISCERAL FAT
+    vis_row = {"Metric": "Visceral Fat"}
+
+    for _, row in leaderboard.iterrows():
+        vf = row.get("VisceralFat","NA")
+        vis_row[row["Name"]] = f"{vf} {visceral_indicator(vf)}"
+
+    rows.append(vis_row)
+
+    # BMR
+    bmr_row = {"Metric": "BMR"}
+
+    for _, row in leaderboard.iterrows():
+        bmr_row[row["Name"]] = row.get("BMR","NA")
+
+    rows.append(bmr_row)
+
+    table_df = pd.DataFrame(rows)
+
+    st.subheader("🏅 Fitness Comparison")
+
+    st.write(
+        table_df.to_html(escape=False, index=False),
+        unsafe_allow_html=True
+    )
 
 else:
 
