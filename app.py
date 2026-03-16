@@ -1,91 +1,55 @@
 # ============================================================
 # FitCom - Body Composition Analytics Platform
 # Author: Anand Kumar
-#
-# Description:
-# FitCom is a body composition analytics dashboard that allows
-# users to enter fitness metrics, track progress, compare
-# performance with others, and receive AI-driven health insights.
-#
-# Core Features
-# -------------
-# • Body metrics entry form
-# • Automatic BMI calculation
-# • Health indicator status (Green / Orange / Red)
-# • User progress tracking
-# • Global comparison across participants
-# • Fitness score calculation
-# • Leaderboard ranking
-#
-# Developed by: Anand Kumar
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-
-# Local module responsible for saving reports
 from storage import save_report
-
-
-# ------------------------------------------------------------
-# Configuration
-# ------------------------------------------------------------
 
 FILE_NAME = "fitcom_reports.csv"
 
-# Configure Streamlit page settings
+# ------------------------------------------------------------
+# Page Configuration
+# ------------------------------------------------------------
+
 st.set_page_config(
     page_title="FitCom",
+    page_icon="🏋️",
     layout="wide"
 )
 
-
 # ------------------------------------------------------------
-# Application Header
+# Hide Streamlit Default Pages Navigation
 # ------------------------------------------------------------
 
-st.title("🏋️ FitCom - Body Composition Dashboard")
-
-st.write(
-    "Track body composition metrics, monitor fitness progress, "
-    "and compare performance with others."
+st.markdown(
+"""
+<style>
+[data-testid="stSidebarNav"] {display: none;}
+</style>
+""",
+unsafe_allow_html=True
 )
 
-
 # ------------------------------------------------------------
-# Utility Function: Health Status Indicator
-# ------------------------------------------------------------
-# Returns a colored status icon based on metric value.
-#
-# Green  -> Healthy range
-# Orange -> Moderate attention required
-# Red    -> Outside healthy range
+# Sidebar Navigation
 # ------------------------------------------------------------
 
-def status_dot(value, green_range, orange_range):
+# Sidebar Branding
 
-    if value is None:
-        return ""
+st.sidebar.image("logo.png", width=160)
+st.sidebar.title("FitCom")
 
-    if green_range[0] <= value <= green_range[1]:
-        return "🟢"
-
-    elif orange_range[0] <= value <= orange_range[1]:
-        return "🟠"
-
-    else:
-        return "🔴"
-
+page = st.sidebar.selectbox(
+    "Navigate",
+    ["Dashboard", "Add Report", "Progress", "Leaderboard", "AI Coach"]
+)
 
 # ------------------------------------------------------------
-# Utility Function: BMI Calculation
-# ------------------------------------------------------------
-# BMI Formula:
-# BMI = Weight(kg) / Height(m)^2
-#
-# Height is entered in inches and converted to meters.
+# Utility Functions
 # ------------------------------------------------------------
 
 def calculate_bmi(weight, height_in):
@@ -94,23 +58,10 @@ def calculate_bmi(weight, height_in):
         return None
 
     height_m = height_in * 0.0254
-
     bmi = weight / (height_m ** 2)
 
     return round(bmi, 2)
 
-
-# ------------------------------------------------------------
-# Utility Function: Fitness Score Calculation
-# ------------------------------------------------------------
-# A simple scoring model based on:
-# • BMI
-# • Body Fat %
-# • Visceral Fat
-# • Body Water %
-#
-# Score ranges between 0 and 100.
-# ------------------------------------------------------------
 
 def calculate_fitness_score(row):
 
@@ -131,188 +82,216 @@ def calculate_fitness_score(row):
     return max(0, round(score))
 
 
-# ------------------------------------------------------------
-# User Input Section
-# ------------------------------------------------------------
+def ai_coach(row):
 
-st.subheader("👤 Enter Body Metrics")
+    tips = []
 
-with st.form("entry_form"):
+    if row["BMI"] > 25:
+        tips.append("BMI slightly high. Consider fat reduction.")
 
-    col1, col2, col3 = st.columns(3)
+    if row["BodyFat"] > 20:
+        tips.append("Body fat above optimal. Add cardio training.")
 
-    # Basic user details
-    with col1:
-        name = st.text_input("Name *")
+    if row["VisceralFat"] > 10:
+        tips.append("Visceral fat elevated. Improve diet.")
 
-    with col2:
-        age = st.number_input("Age", 10, 100)
+    if row["BodyWater"] < 50:
+        tips.append("Hydration appears low. Increase water intake.")
 
-    with col3:
-        height = st.number_input("Height (inches)", 48, 90)
+    if not tips:
+        tips.append("Body composition is within healthy range.")
 
-    st.divider()
-
-    # Body composition metrics
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-
-        weight = st.number_input("Weight (kg)", 30.0, 200.0)
-
-        # Automatically calculate BMI
-        bmi_auto = calculate_bmi(weight, height)
-
-        bmi = st.number_input(
-            "BMI (auto calculated)",
-            value=float(bmi_auto) if bmi_auto else 0.0
-        )
-
-        bodyfat = st.number_input("Body Fat (%)", 1.0, 60.0)
-
-    with col2:
-
-        muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0)
-
-        skeletal_muscle = st.number_input("Skeletal Muscle (%)", 10.0, 80.0)
-
-        bone_mass = st.number_input("Bone Mass (kg)", 1.0, 10.0)
-
-    with col3:
-
-        body_water = st.number_input("Body Water (%)", 1.0, 80.0)
-
-        visceral_fat = st.number_input("Visceral Fat", 1.0, 50.0)
-
-        bmr = st.number_input("BMR", 800.0, 4000.0)
-
-    submitted = st.form_submit_button("Save Report")
+    return tips
 
 
 # ------------------------------------------------------------
-# Save Report
+# Load Dataset
 # ------------------------------------------------------------
 
-if submitted:
-
-    if not name:
-
-        st.error("Name is mandatory")
-
-    else:
-
-        report_date = datetime.now().strftime("%Y-%m-%d")
-
-        metrics = {
-            "Name": name,
-            "Date": report_date,
-            "Age": age,
-            "Height": height,
-            "Weight": weight,
-            "BMI": bmi,
-            "BodyFat": bodyfat,
-            "MuscleMass": muscle_mass,
-            "SkeletalMuscle": skeletal_muscle,
-            "BoneMass": bone_mass,
-            "BodyWater": body_water,
-            "VisceralFat": visceral_fat,
-            "BMR": bmr
-        }
-
-        save_report(name, metrics)
-
-        st.success("Report saved successfully!")
-
-
-# ------------------------------------------------------------
-# Load Saved Reports
-# ------------------------------------------------------------
+df = None
 
 if os.path.exists(FILE_NAME):
-
     df = pd.read_csv(FILE_NAME)
 
-    st.subheader("📊 All Reports")
+# ============================================================
+# DASHBOARD
+# ============================================================
 
-    st.dataframe(df)
+if page == "Dashboard":
 
+    st.title("📊 FitCom Dashboard")
 
-# ------------------------------------------------------------
-# Progress Tracking
-# ------------------------------------------------------------
+    if df is None or df.empty:
 
-    st.subheader("📈 Progress Tracking")
-
-    users = df["Name"].unique()
-
-    selected_user = st.selectbox("Select User", users)
-
-    user_df = df[df["Name"] == selected_user].sort_values("Date")
-
-    if len(user_df) > 1:
-
-        chart_df = user_df.set_index("Date")[["Weight","BodyFat","MuscleMass"]]
-
-        st.line_chart(chart_df)
+        st.info("No reports available yet.")
 
     else:
 
-        st.info("Add more reports to see progress trend.")
+        st.subheader("All Recorded Reports")
+
+        st.dataframe(df)
+
+        latest = df.iloc[-1]
+
+        st.subheader("Latest Body Metrics")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        col1.metric("BMI", latest["BMI"])
+        col2.metric("Body Fat %", latest["BodyFat"])
+        col3.metric("Muscle Mass", latest["MuscleMass"])
+        col4.metric("Visceral Fat", latest["VisceralFat"])
+
+        score = calculate_fitness_score(latest)
+
+        st.subheader("Fitness Score")
+
+        st.progress(score / 100)
+
+        st.metric("Score", f"{score}/100")
 
 
-# ------------------------------------------------------------
-# Health Status Overview
-# ------------------------------------------------------------
+# ============================================================
+# ADD REPORT
+# ============================================================
 
-    st.subheader("🟢 Health Status")
+elif page == "Add Report":
 
-    latest = user_df.iloc[-1]
+    st.title("➕ Add Body Composition Report")
 
-    st.write(
-        "BMI:",
-        latest["BMI"],
-        status_dot(latest["BMI"], (18.5,24.9),(25,29.9))
+    name = st.text_input("Name")
+
+    age = st.number_input("Age", 10, 100)
+
+    height = st.number_input("Height (inches)", 48, 90)
+
+    weight = st.number_input("Weight (kg)", 30.0, 200.0)
+
+    bmi_auto = calculate_bmi(weight, height)
+
+    bmi = st.number_input(
+        "BMI",
+        value=float(bmi_auto) if bmi_auto else 0.0
     )
 
-    st.write(
-        "Body Fat:",
-        latest["BodyFat"],
-        status_dot(latest["BodyFat"], (10,20),(21,25))
-    )
+    bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
 
-    st.write(
-        "Visceral Fat:",
-        latest["VisceralFat"],
-        status_dot(latest["VisceralFat"], (1,9),(10,14))
-    )
+    muscle = st.number_input("Muscle Mass", 10.0, 100.0)
+
+    visceral = st.number_input("Visceral Fat", 1.0, 50.0)
+
+    bodywater = st.number_input("Body Water %", 1.0, 80.0)
+
+    if st.button("Save Report"):
+
+        if not name:
+
+            st.error("Name is required")
+
+        else:
+
+            report = {
+                "Name": name,
+                "Date": datetime.now().strftime("%Y-%m-%d"),
+                "Age": age,
+                "Height": height,
+                "Weight": weight,
+                "BMI": bmi,
+                "BodyFat": bodyfat,
+                "MuscleMass": muscle,
+                "VisceralFat": visceral,
+                "BodyWater": bodywater
+            }
+
+            save_report(name, report)
+
+            st.success("Report saved successfully!")
 
 
-# ------------------------------------------------------------
-# Global Comparison
-# ------------------------------------------------------------
+# ============================================================
+# PROGRESS
+# ============================================================
 
-    st.subheader("⚖️ FitCom Global Comparison")
+elif page == "Progress":
 
-    if len(df) > 1:
+    st.title("📈 Progress Tracking")
 
-        numeric_cols = df.select_dtypes(include=["int64","float64"]).columns
-        numeric_cols = [c for c in numeric_cols if c not in ["Age","Height"]]
+    if df is None or df.empty:
 
-        comparison_results = []
+        st.info("No reports available.")
 
-        for metric in numeric_cols:
+    else:
 
-            best_idx = df[metric].idxmax()
-            worst_idx = df[metric].idxmin()
+        user = st.selectbox("Select User", df["Name"].unique())
 
-            comparison_results.append({
-                "Metric": metric,
-                "Best Performer": df.loc[best_idx]["Name"],
-                "Best Value": df.loc[best_idx][metric],
-                "Lowest Performer": df.loc[worst_idx]["Name"],
-                "Lowest Value": df.loc[worst_idx][metric]
-            })
+        user_df = df[df["Name"] == user].sort_values("Date")
 
-        comparison_df = pd.DataFrame(comparison_results)
+        st.subheader("User Historical Reports")
 
-        st.dataframe(comparison_df)
+        st.dataframe(user_df)
+
+        if len(user_df) > 1:
+
+            st.subheader("Progress Chart")
+
+            st.line_chart(
+                user_df.set_index("Date")[["Weight", "BodyFat", "MuscleMass"]]
+            )
+
+        else:
+
+            st.info("Add multiple reports to see progress.")
+
+
+# ============================================================
+# LEADERBOARD
+# ============================================================
+
+elif page == "Leaderboard":
+
+    st.title("🏆 FitCom Leaderboard")
+
+    if df is None or df.empty:
+
+        st.info("No reports available.")
+
+    else:
+
+        df["FitnessScore"] = df.apply(calculate_fitness_score, axis=1)
+
+        leaderboard = df.sort_values("FitnessScore", ascending=False)
+
+        st.dataframe(
+            leaderboard[["Name", "Date", "FitnessScore", "BodyFat", "MuscleMass"]],
+            use_container_width=True
+        )
+
+
+# ============================================================
+# AI COACH
+# ============================================================
+
+elif page == "AI Coach":
+
+    st.title("🤖 AI Health Coach")
+
+    if df is None or df.empty:
+
+        st.info("No reports available.")
+
+    else:
+
+        user = st.selectbox("Select User", df["Name"].unique())
+
+        latest = df[df["Name"] == user].iloc[-1]
+
+        st.subheader("Latest Metrics")
+
+        st.write(latest)
+
+        st.subheader("AI Advice")
+
+        tips = ai_coach(latest)
+
+        for tip in tips:
+            st.success(tip)
