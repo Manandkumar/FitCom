@@ -1,35 +1,68 @@
-# -------------------------------------------------------
-# FitCom - Body Composition Dashboard
+# ============================================================
+# FitCom - Body Composition Analytics Platform
 # Author: Anand Kumar
-# -------------------------------------------------------
+#
+# Description:
+# FitCom is a body composition analytics dashboard that allows
+# users to enter fitness metrics, track progress, compare
+# performance with others, and receive AI-driven health insights.
+#
+# Core Features
+# -------------
+# • Body metrics entry form
+# • Automatic BMI calculation
+# • Health indicator status (Green / Orange / Red)
+# • User progress tracking
+# • Global comparison across participants
+# • Fitness score calculation
+# • Leaderboard ranking
+#
+# Developed by: Anand Kumar
+# ============================================================
 
 import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
 
+# Local module responsible for saving reports
 from storage import save_report
+
+
+# ------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------
 
 FILE_NAME = "fitcom_reports.csv"
 
-# -------------------------------------------------------
-# PAGE CONFIG
-# -------------------------------------------------------
-
+# Configure Streamlit page settings
 st.set_page_config(
     page_title="FitCom",
     layout="wide"
 )
 
+
+# ------------------------------------------------------------
+# Application Header
+# ------------------------------------------------------------
+
 st.title("🏋️ FitCom - Body Composition Dashboard")
 
 st.write(
-    "Track body composition metrics, monitor progress, and compare performance."
+    "Track body composition metrics, monitor fitness progress, "
+    "and compare performance with others."
 )
 
-# -------------------------------------------------------
-# HEALTH STATUS DOT
-# -------------------------------------------------------
+
+# ------------------------------------------------------------
+# Utility Function: Health Status Indicator
+# ------------------------------------------------------------
+# Returns a colored status icon based on metric value.
+#
+# Green  -> Healthy range
+# Orange -> Moderate attention required
+# Red    -> Outside healthy range
+# ------------------------------------------------------------
 
 def status_dot(value, green_range, orange_range):
 
@@ -46,9 +79,14 @@ def status_dot(value, green_range, orange_range):
         return "🔴"
 
 
-# -------------------------------------------------------
-# BMI CALCULATION
-# -------------------------------------------------------
+# ------------------------------------------------------------
+# Utility Function: BMI Calculation
+# ------------------------------------------------------------
+# BMI Formula:
+# BMI = Weight(kg) / Height(m)^2
+#
+# Height is entered in inches and converted to meters.
+# ------------------------------------------------------------
 
 def calculate_bmi(weight, height_in):
 
@@ -62,9 +100,40 @@ def calculate_bmi(weight, height_in):
     return round(bmi, 2)
 
 
-# -------------------------------------------------------
-# USER ENTRY
-# -------------------------------------------------------
+# ------------------------------------------------------------
+# Utility Function: Fitness Score Calculation
+# ------------------------------------------------------------
+# A simple scoring model based on:
+# • BMI
+# • Body Fat %
+# • Visceral Fat
+# • Body Water %
+#
+# Score ranges between 0 and 100.
+# ------------------------------------------------------------
+
+def calculate_fitness_score(row):
+
+    score = 100
+
+    if row["BMI"] > 25:
+        score -= (row["BMI"] - 25) * 2
+
+    if row["BodyFat"] > 20:
+        score -= (row["BodyFat"] - 20) * 1.5
+
+    if row["VisceralFat"] > 10:
+        score -= (row["VisceralFat"] - 10) * 2
+
+    if row["BodyWater"] < 50:
+        score -= (50 - row["BodyWater"]) * 1.5
+
+    return max(0, round(score))
+
+
+# ------------------------------------------------------------
+# User Input Section
+# ------------------------------------------------------------
 
 st.subheader("👤 Enter Body Metrics")
 
@@ -72,6 +141,7 @@ with st.form("entry_form"):
 
     col1, col2, col3 = st.columns(3)
 
+    # Basic user details
     with col1:
         name = st.text_input("Name *")
 
@@ -83,12 +153,14 @@ with st.form("entry_form"):
 
     st.divider()
 
+    # Body composition metrics
     col1, col2, col3 = st.columns(3)
 
     with col1:
 
         weight = st.number_input("Weight (kg)", 30.0, 200.0)
 
+        # Automatically calculate BMI
         bmi_auto = calculate_bmi(weight, height)
 
         bmi = st.number_input(
@@ -98,27 +170,15 @@ with st.form("entry_form"):
 
         bodyfat = st.number_input("Body Fat (%)", 1.0, 60.0)
 
-        fat_mass = st.number_input("Fat Mass (kg)", 1.0, 100.0)
-
-        fat_free = st.number_input("Fat Free Body Weight (kg)", 10.0, 150.0)
-
     with col2:
 
         muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0)
-
-        muscle_rate = st.number_input("Muscle Rate (%)", 10.0, 90.0)
 
         skeletal_muscle = st.number_input("Skeletal Muscle (%)", 10.0, 80.0)
 
         bone_mass = st.number_input("Bone Mass (kg)", 1.0, 10.0)
 
-        protein_mass = st.number_input("Protein Mass (kg)", 1.0, 30.0)
-
     with col3:
-
-        protein = st.number_input("Protein (%)", 1.0, 40.0)
-
-        water_weight = st.number_input("Water Weight (kg)", 1.0, 100.0)
 
         body_water = st.number_input("Body Water (%)", 1.0, 80.0)
 
@@ -126,24 +186,12 @@ with st.form("entry_form"):
 
         bmr = st.number_input("BMR", 800.0, 4000.0)
 
-    st.divider()
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        body_age = st.number_input("Body Age", 10, 100)
-
-    with col2:
-        whr = st.number_input("WHR", 0.5, 1.5)
-
-    with col3:
-        ideal_weight = st.number_input("Ideal Body Weight (kg)", 30.0, 150.0)
-
     submitted = st.form_submit_button("Save Report")
 
-# -------------------------------------------------------
-# SAVE DATA
-# -------------------------------------------------------
+
+# ------------------------------------------------------------
+# Save Report
+# ------------------------------------------------------------
 
 if submitted:
 
@@ -156,7 +204,6 @@ if submitted:
         report_date = datetime.now().strftime("%Y-%m-%d")
 
         metrics = {
-
             "Name": name,
             "Date": report_date,
             "Age": age,
@@ -164,21 +211,12 @@ if submitted:
             "Weight": weight,
             "BMI": bmi,
             "BodyFat": bodyfat,
-            "FatMass": fat_mass,
-            "FatFreeWeight": fat_free,
             "MuscleMass": muscle_mass,
-            "MuscleRate": muscle_rate,
             "SkeletalMuscle": skeletal_muscle,
             "BoneMass": bone_mass,
-            "ProteinMass": protein_mass,
-            "Protein": protein,
-            "WaterWeight": water_weight,
             "BodyWater": body_water,
             "VisceralFat": visceral_fat,
-            "BMR": bmr,
-            "BodyAge": body_age,
-            "WHR": whr,
-            "IdealWeight": ideal_weight
+            "BMR": bmr
         }
 
         save_report(name, metrics)
@@ -186,9 +224,9 @@ if submitted:
         st.success("Report saved successfully!")
 
 
-# -------------------------------------------------------
-# LOAD DATA
-# -------------------------------------------------------
+# ------------------------------------------------------------
+# Load Saved Reports
+# ------------------------------------------------------------
 
 if os.path.exists(FILE_NAME):
 
@@ -199,9 +237,9 @@ if os.path.exists(FILE_NAME):
     st.dataframe(df)
 
 
-# -------------------------------------------------------
-# USER PROGRESS GRAPH
-# -------------------------------------------------------
+# ------------------------------------------------------------
+# Progress Tracking
+# ------------------------------------------------------------
 
     st.subheader("📈 Progress Tracking")
 
@@ -209,7 +247,7 @@ if os.path.exists(FILE_NAME):
 
     selected_user = st.selectbox("Select User", users)
 
-    user_df = df[df["Name"] == selected_user]
+    user_df = df[df["Name"] == selected_user].sort_values("Date")
 
     if len(user_df) > 1:
 
@@ -222,9 +260,9 @@ if os.path.exists(FILE_NAME):
         st.info("Add more reports to see progress trend.")
 
 
-# -------------------------------------------------------
-# HEALTH STATUS SUMMARY
-# -------------------------------------------------------
+# ------------------------------------------------------------
+# Health Status Overview
+# ------------------------------------------------------------
 
     st.subheader("🟢 Health Status")
 
@@ -248,50 +286,33 @@ if os.path.exists(FILE_NAME):
         status_dot(latest["VisceralFat"], (1,9),(10,14))
     )
 
-    st.write(
-        "Body Water:",
-        latest["BodyWater"],
-        status_dot(latest["BodyWater"], (50,65),(45,49))
-    )
 
-    # -------------------------------------------------------
-# GLOBAL COMPARISON ACROSS ALL USERS
-# -------------------------------------------------------
+# ------------------------------------------------------------
+# Global Comparison
+# ------------------------------------------------------------
 
-st.subheader("⚖️ FitCom Global Comparison")
+    st.subheader("⚖️ FitCom Global Comparison")
 
-if len(df) > 1:
+    if len(df) > 1:
 
-    numeric_cols = df.select_dtypes(include=["int64","float64"]).columns
+        numeric_cols = df.select_dtypes(include=["int64","float64"]).columns
+        numeric_cols = [c for c in numeric_cols if c not in ["Age","Height"]]
 
-    # remove age and height from comparison
-    numeric_cols = [c for c in numeric_cols if c not in ["Age","Height"]]
+        comparison_results = []
 
-    comparison_results = []
+        for metric in numeric_cols:
 
-    for metric in numeric_cols:
+            best_idx = df[metric].idxmax()
+            worst_idx = df[metric].idxmin()
 
-        best_idx = df[metric].idxmax()
-        worst_idx = df[metric].idxmin()
+            comparison_results.append({
+                "Metric": metric,
+                "Best Performer": df.loc[best_idx]["Name"],
+                "Best Value": df.loc[best_idx][metric],
+                "Lowest Performer": df.loc[worst_idx]["Name"],
+                "Lowest Value": df.loc[worst_idx][metric]
+            })
 
-        best_person = df.loc[best_idx]["Name"]
-        worst_person = df.loc[worst_idx]["Name"]
+        comparison_df = pd.DataFrame(comparison_results)
 
-        best_value = df.loc[best_idx][metric]
-        worst_value = df.loc[worst_idx][metric]
-
-        comparison_results.append({
-            "Metric": metric,
-            "Best Performer": best_person,
-            "Best Value": best_value,
-            "Lowest Performer": worst_person,
-            "Lowest Value": worst_value
-        })
-
-    comparison_df = pd.DataFrame(comparison_results)
-
-    st.dataframe(comparison_df)
-
-else:
-
-    st.info("Add more participants to enable comparison.")
+        st.dataframe(comparison_df)
