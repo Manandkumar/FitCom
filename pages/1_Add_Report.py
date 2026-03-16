@@ -7,34 +7,34 @@ from datetime import datetime
 from storage import save_report
 from sidebar import render_sidebar
 
-# ------------------------------------------------------------
 # Sidebar
-# ------------------------------------------------------------
-
 render_sidebar()
 
 st.title("➕ Add Body Composition Report")
 
-# ------------------------------------------------------------
-# Utility
-# ------------------------------------------------------------
-
+# -------------------------------
+# BMI Calculation
+# -------------------------------
 def calculate_bmi(weight, height_in):
 
     if height_in == 0:
         return 0
 
     height_m = height_in * 0.0254
-    return round(weight / (height_m ** 2), 2)
+    bmi = weight / (height_m ** 2)
+
+    return round(bmi, 2)
 
 
-def save_image(upload_file):
+# -------------------------------
+# Save Uploaded Image
+# -------------------------------
+def save_image(uploaded_file):
 
     try:
 
-        image = Image.open(upload_file)
+        image = Image.open(uploaded_file)
 
-        # FIX: convert incompatible formats
         if image.mode != "RGB":
             image = image.convert("RGB")
 
@@ -49,14 +49,13 @@ def save_image(upload_file):
 
     except Exception as e:
 
-        st.error("Image could not be saved.")
+        st.error("Image saving failed")
         return None, None
 
 
-# ------------------------------------------------------------
-# Upload Section
-# ------------------------------------------------------------
-
+# -------------------------------
+# Upload Selfie
+# -------------------------------
 st.subheader("User Profile")
 
 uploaded_photo = st.file_uploader(
@@ -64,21 +63,19 @@ uploaded_photo = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
-image_preview = None
 photo_path = None
+preview = None
 
 if uploaded_photo:
+    photo_path, preview = save_image(uploaded_photo)
 
-    photo_path, image_preview = save_image(uploaded_photo)
-
-    if image_preview:
-        st.image(image_preview, width=200)
+    if preview:
+        st.image(preview, width=200)
 
 
-# ------------------------------------------------------------
+# -------------------------------
 # User Inputs
-# ------------------------------------------------------------
-
+# -------------------------------
 name = st.text_input("Name")
 
 age = st.number_input("Age", 10, 100)
@@ -89,7 +86,7 @@ weight = st.number_input("Weight (kg)", 30.0, 200.0)
 
 bmi = calculate_bmi(weight, height)
 
-st.metric("Calculated BMI", bmi)
+st.metric("BMI", bmi)
 
 bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
 
@@ -100,10 +97,9 @@ visceral = st.number_input("Visceral Fat", 1.0, 50.0)
 bodywater = st.number_input("Body Water %", 1.0, 80.0)
 
 
-# ------------------------------------------------------------
+# -------------------------------
 # Save Report
-# ------------------------------------------------------------
-
+# -------------------------------
 if st.button("Save Report"):
 
     if not name:
@@ -130,3 +126,4 @@ if st.button("Save Report"):
         save_report(name, report)
 
         st.success("Report saved successfully")
+```
