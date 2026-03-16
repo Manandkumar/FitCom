@@ -27,6 +27,21 @@ def render_sidebar():
         unsafe_allow_html=True
         
     )
+
+    # ------------------------------------------------------------
+    # Contact / Support Section
+    # ------------------------------------------------------------
+
+    st.sidebar.markdown("---")
+
+    st.sidebar.markdown("### Need Help?")
+
+    st.sidebar.markdown(
+        """
+        **Anand Kumar**  
+        📧 manandkumar@gmail.com
+        """
+    )
     
 
 
