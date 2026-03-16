@@ -25,6 +25,13 @@ def render_sidebar():
         </style>
         """,
         unsafe_allow_html=True
+         # Contact section
+            st.sidebar.markdown("### Need Help?")
+            st.sidebar.markdown(
+            """
+            **Anand Kumar**  
+            📧 anand@example.com  
+            """
     )
 
 
