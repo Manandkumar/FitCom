@@ -1,4 +1,5 @@
 # ============================================================
+# FitCom - Add Body Composition Report
 # Author: Anand Kumar
 # ============================================================
 
@@ -13,6 +14,7 @@ from sidebar import render_sidebar
 # -------------------------------------------------------
 # Render Sidebar
 # -------------------------------------------------------
+
 render_sidebar()
 
 st.title("➕ Add Body Composition Report")
@@ -30,9 +32,13 @@ def calculate_bmi(weight, height_in):
     return round(weight / (height_m ** 2), 2)
 
 
-def calculate_bmr(weight, height_cm, age):
-    """Mifflin-St Jeor Equation (male default)"""
-    return round((10 * weight) + (6.25 * height_cm) - (5 * age) + 5)
+def calculate_bmr(weight, height_cm, age, gender):
+    """Mifflin-St Jeor Equation"""
+
+    if gender == "Male":
+        return round((10 * weight) + (6.25 * height_cm) - (5 * age) + 5)
+    else:
+        return round((10 * weight) + (6.25 * height_cm) - (5 * age) - 161)
 
 
 def ideal_body_weight(height_in):
@@ -58,12 +64,15 @@ def water_weight(weight, bodywater):
 
 def status_dot(value, green_range, amber_range):
     """
-    Returns color emoji for indicator
+    Returns color emoji indicator
     """
+
     if green_range[0] <= value <= green_range[1]:
         return "🟢"
+
     elif amber_range[0] <= value <= amber_range[1]:
         return "🟡"
+
     else:
         return "🔴"
 
@@ -75,6 +84,7 @@ def status_dot(value, green_range, amber_range):
 def save_image(uploaded_file):
 
     try:
+
         image = Image.open(uploaded_file)
 
         if image.mode != "RGB":
@@ -83,6 +93,7 @@ def save_image(uploaded_file):
         os.makedirs("profiles", exist_ok=True)
 
         filename = f"{uuid.uuid4()}.jpg"
+
         path = os.path.join("profiles", filename)
 
         image.save(path, "JPEG")
@@ -90,7 +101,9 @@ def save_image(uploaded_file):
         return path, image
 
     except:
+
         st.error("Image saving failed")
+
         return None, None
 
 
@@ -109,12 +122,18 @@ photo_path = None
 preview = None
 
 if uploaded_photo:
+
     photo_path, preview = save_image(uploaded_photo)
 
     if preview:
         st.image(preview, width=200)
 
 name = st.text_input("Name")
+
+gender = st.selectbox(
+    "Gender",
+    ["Male","Female"]
+)
 
 age = st.number_input("Age", min_value=10, max_value=100)
 
@@ -132,8 +151,11 @@ st.subheader("Body Composition Metrics")
 weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0)
 
 # BMI auto calculated
+
 bmi = calculate_bmi(weight, height)
+
 bmi_status = status_dot(bmi,(18.5,24.9),(25,29.9))
+
 st.metric("BMI", f"{bmi} {bmi_status}")
 
 
@@ -143,14 +165,21 @@ st.metric("BMI", f"{bmi} {bmi_status}")
 
 bodyfat = st.number_input("Body Fat %", min_value=1.0, max_value=60.0)
 
-bodyfat_status = status_dot(bodyfat,(10,20),(20,25))
+# Gender specific body fat ranges
+
+if gender == "Male":
+    bodyfat_status = status_dot(bodyfat,(10,20),(20,25))
+else:
+    bodyfat_status = status_dot(bodyfat,(18,28),(28,35))
 
 st.write(f"Body Fat Status {bodyfat_status}")
 
 fat_mass_value = fat_mass(weight, bodyfat)
+
 st.metric("Fat Mass (kg)", fat_mass_value)
 
 ffbw = fat_free_mass(weight, fat_mass_value)
+
 st.metric("Fat Free Body Weight", ffbw)
 
 
@@ -208,7 +237,7 @@ st.write(f"Visceral Fat Status {visceral_status}")
 # Metabolic Metrics
 # -------------------------------------------------------
 
-bmr = calculate_bmr(weight,height_cm,age)
+bmr = calculate_bmr(weight,height_cm,age,gender)
 
 st.metric("BMR (Calories/day)",bmr)
 
@@ -237,6 +266,7 @@ if st.button("Save Report"):
         report = {
 
             "Name": name,
+            "Gender": gender,
             "Date": datetime.now().strftime("%Y-%m-%d"),
             "Photo": photo_path,
             "Age": age,
