@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 from sidebar import render_sidebar
+
 render_sidebar()
 
 FILE_NAME = "fitcom_reports.csv"
@@ -94,19 +95,37 @@ if os.path.exists(FILE_NAME):
 
     leaderboard = latest_df.sort_values("FitnessScore", ascending=False)
 
-    st.dataframe(
-        leaderboard[
-            [
-                "Name",
-                "Date",
-                "BMI",
-                "BodyFat",
-                "MuscleMass",
-                "FitnessScore"
-            ]
-        ],
-        use_container_width=True
-    )
+    athletes = leaderboard.to_dict("records")
+
+    cols = st.columns(len(athletes))
+
+    for col, athlete in zip(cols, athletes):
+
+        with col:
+
+            # Photo
+            if "Photo" in athlete and pd.notna(athlete["Photo"]):
+
+                if os.path.exists(athlete["Photo"]):
+
+                    st.image(athlete["Photo"], width=120)
+
+            else:
+                st.image(
+                    "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+                    width=120
+                )
+
+            # Name
+            st.markdown(f"### {athlete['Name']}")
+
+            # Score
+            st.metric("🏆 Fitness Score", athlete["FitnessScore"])
+
+            # Metrics
+            st.metric("⚖️ BMI", athlete["BMI"])
+            st.metric("🔥 Body Fat %", athlete["BodyFat"])
+            st.metric("💪 Muscle", athlete["MuscleMass"])
 
 else:
 
