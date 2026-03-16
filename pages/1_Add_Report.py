@@ -5,6 +5,8 @@ from PIL import Image
 import os
 from datetime import datetime
 from storage import save_report
+from sidebar import render_sidebar
+render_sidebar()
 
 FILE_NAME = "fitcom_reports.csv"
 

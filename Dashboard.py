@@ -6,6 +6,7 @@
 import streamlit as st
 import pandas as pd
 import os
+from sidebar import render_sidebar
 
 FILE_NAME = "fitcom_reports.csv"
 
@@ -23,8 +24,7 @@ st.set_page_config(
 # Sidebar Branding
 # ------------------------------------------------------------
 
-st.sidebar.image("logo.png", width=160)
-st.sidebar.title("FitCom")
+render_sidebar()
 
 # ------------------------------------------------------------
 # Utility Functions
@@ -139,3 +139,40 @@ else:
             user_df.set_index("Date")[["Weight", "BodyFat", "MuscleMass"]]
         )
 
+# ------------------------------------------------------------
+# Most Improved Athlete
+# ------------------------------------------------------------
+
+st.subheader("🔥 Most Improved Athlete")
+
+improvements = []
+
+for athlete in df["Name"].unique():
+
+    athlete_df = df[df["Name"] == athlete].sort_values("Date")
+
+    if len(athlete_df) > 1:
+
+        start_fat = athlete_df.iloc[0]["BodyFat"]
+        end_fat = athlete_df.iloc[-1]["BodyFat"]
+
+        improvement = start_fat - end_fat
+
+        improvements.append({
+            "Name": athlete,
+            "FatLoss": improvement
+        })
+
+if improvements:
+
+    imp_df = pd.DataFrame(improvements)
+
+    best = imp_df.sort_values("FatLoss", ascending=False).iloc[0]
+
+    st.success(
+        f"🏆 {best['Name']} improved the most with {round(best['FatLoss'],2)}% body fat reduction."
+    )
+
+else:
+
+    st.info("Add multiple reports to calculate improvement.")

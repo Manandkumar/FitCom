@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import os
+from sidebar import render_sidebar
+render_sidebar()
 
 FILE_NAME = "fitcom_reports.csv"
 

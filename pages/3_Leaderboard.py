@@ -1,10 +1,16 @@
 import streamlit as st
 import pandas as pd
 import os
+from sidebar import render_sidebar
+render_sidebar()
 
 FILE_NAME = "fitcom_reports.csv"
 
-st.title("🏆 Leaderboard")
+st.title("🏆 FitCom Leaderboard")
+
+# ------------------------------------------------------------
+# Fitness Score Function
+# ------------------------------------------------------------
 
 def calculate_fitness_score(row):
 
@@ -16,14 +22,92 @@ def calculate_fitness_score(row):
     if row["BodyFat"] > 20:
         score -= (row["BodyFat"] - 20) * 1.5
 
+    if row["VisceralFat"] > 10:
+        score -= (row["VisceralFat"] - 10) * 2
+
+    if row["BodyWater"] < 50:
+        score -= (50 - row["BodyWater"]) * 1.5
+
     return max(0, round(score))
+
+
+# ------------------------------------------------------------
+# Load Data
+# ------------------------------------------------------------
 
 if os.path.exists(FILE_NAME):
 
     df = pd.read_csv(FILE_NAME)
 
-    df["FitnessScore"] = df.apply(calculate_fitness_score, axis=1)
+    # ------------------------------------------------------------
+    # Most Improved Athlete
+    # ------------------------------------------------------------
 
-    leaderboard = df.sort_values("FitnessScore", ascending=False)
+    st.subheader("🔥 Most Improved Athlete")
 
-    st.dataframe(leaderboard)
+    improvements = []
+
+    for athlete in df["Name"].unique():
+
+        athlete_df = df[df["Name"] == athlete].sort_values("Date")
+
+        if len(athlete_df) > 1:
+
+            start_fat = athlete_df.iloc[0]["BodyFat"]
+            end_fat = athlete_df.iloc[-1]["BodyFat"]
+
+            improvement = start_fat - end_fat
+
+            improvements.append({
+                "Name": athlete,
+                "FatLoss": improvement
+            })
+
+    if improvements:
+
+        imp_df = pd.DataFrame(improvements)
+
+        best = imp_df.sort_values("FatLoss", ascending=False).iloc[0]
+
+        st.success(
+            f"🏆 {best['Name']} improved the most with {round(best['FatLoss'],2)}% body fat reduction."
+        )
+
+    else:
+
+        st.info("Add multiple reports to calculate improvement.")
+
+
+    # ------------------------------------------------------------
+    # Leaderboard (Latest record per user)
+    # ------------------------------------------------------------
+
+    st.subheader("🏅 Fitness Leaderboard")
+
+    latest_df = (
+        df.sort_values("Date")
+        .groupby("Name")
+        .tail(1)
+    )
+
+    latest_df["FitnessScore"] = latest_df.apply(calculate_fitness_score, axis=1)
+
+    leaderboard = latest_df.sort_values("FitnessScore", ascending=False)
+
+    st.dataframe(
+        leaderboard[
+            [
+                "Name",
+                "Date",
+                "BMI",
+                "BodyFat",
+                "MuscleMass",
+                "FitnessScore"
+            ]
+        ],
+        use_container_width=True
+    )
+
+else:
+
+    st.info("No reports available yet.")

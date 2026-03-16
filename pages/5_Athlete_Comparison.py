@@ -7,6 +7,8 @@ import streamlit as st
 import pandas as pd
 import os
 import plotly.graph_objects as go
+from sidebar import render_sidebar
+render_sidebar()
 
 FILE_NAME = "fitcom_reports.csv"
 
