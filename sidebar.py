@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Sidebar Navigation (Final with Top Logo)
+# FitCom - Sidebar Navigation (Final FIXED)
 # ============================================================
 
 import streamlit as st
@@ -7,19 +7,19 @@ import streamlit as st
 def render_sidebar():
 
     # -------------------------------------------------------
-    # FIX: Push default navigation slightly down
+    # 🔥 HIDE DEFAULT STREAMLIT NAVIGATION
     # -------------------------------------------------------
 
     st.markdown("""
     <style>
     section[data-testid="stSidebarNav"] {
-        margin-top: 20px;
+        display: none;
     }
     </style>
     """, unsafe_allow_html=True)
 
     # -------------------------------------------------------
-    # LOGO + BRANDING (TOP)
+    # LOGO + BRANDING (NOW AT TRUE TOP)
     # -------------------------------------------------------
 
     st.sidebar.image("logo.png", width=120)
@@ -34,74 +34,58 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # MEMBER SECTION
+    # 👤 MEMBER
     # -------------------------------------------------------
 
     st.sidebar.markdown("## 👤 Member")
 
-    st.sidebar.page_link(
-        "pages/2_Progress.py",
-        label="My Progress"
-    )
+    if st.sidebar.button("My Progress"):
+        st.switch_page("pages/2_Progress.py")
 
-    st.sidebar.page_link(
-        "pages/8_Weekly_Report.py",
-        label="Weekly Report"
-    )
+    if st.sidebar.button("Weekly Report"):
+        st.switch_page("pages/8_Weekly_Report.py")
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # TRAINER SECTION
+    # 🏋️ TRAINER
     # -------------------------------------------------------
 
     st.sidebar.markdown("## 🏋️ Trainer")
 
-    st.sidebar.page_link(
-        "pages/1_Add_NewMember.py",
-        label="Add Member / Report"
-    )
+    if st.sidebar.button("Add Member / Report"):
+        st.switch_page("pages/1_Add_NewMember.py")
 
-    st.sidebar.page_link(
-        "pages/6_Edit_Report.py",
-        label="Edit Report"
-    )
+    if st.sidebar.button("Edit Report"):
+        st.switch_page("pages/6_Edit_Report.py")
 
-    st.sidebar.page_link(
-        "pages/3_Leaderboard.py",
-        label="Leaderboard"
-    )
+    if st.sidebar.button("Leaderboard"):
+        st.switch_page("pages/3_Leaderboard.py")
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # AI FEATURES
+    # 🤖 AI FEATURES
     # -------------------------------------------------------
 
     st.sidebar.markdown("## 🤖 AI Features")
 
-    st.sidebar.page_link(
-        "pages/4_AI_Coach.py",
-        label="AI Coach"
-    )
+    if st.sidebar.button("AI Coach"):
+        st.switch_page("pages/4_AI_Coach.py")
 
-    st.sidebar.page_link(
-        "pages/5_Athlete_Comparison.py",
-        label="Athlete Comparison"
-    )
+    if st.sidebar.button("Athlete Comparison"):
+        st.switch_page("pages/5_Athlete_Comparison.py")
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # ADMIN SECTION
+    # ⚙️ ADMIN
     # -------------------------------------------------------
 
     st.sidebar.markdown("## ⚙️ Admin")
 
-    st.sidebar.page_link(
-        "pages/7_Admin_Dashboard.py",
-        label="Admin Dashboard"
-    )
+    if st.sidebar.button("Admin Dashboard"):
+        st.switch_page("pages/7_Admin_Dashboard.py")
 
     st.sidebar.markdown("---")
 
