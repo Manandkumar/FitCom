@@ -84,7 +84,7 @@ def render_sidebar():
     # -------------------------------------------------------
     st.sidebar.page_link("Dashboard.py", label="🏠 Dashboard")
 
-    st.sidebar.page_link("pages/9_Member_Dashboard.py", label="👤 Individual hboard")  # ✅ ADDED
+    st.sidebar.page_link("pages/9_Member_Dashboard.py", label="👤 Individual Board")  # ✅ ADDED
 
     st.sidebar.page_link("pages/2_Progress.py", label="📊 Progress")
 
