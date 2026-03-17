@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Member Dashboard (Final Version)
+# FitCom - Member Dashboard (Final Fixed Version)
 # ============================================================
 
 import streamlit as st
@@ -8,16 +8,13 @@ import sys
 import os
 from datetime import datetime
 
-# -------------------------------------------------------
-# Fix Import Path (for pages folder access)
-# -------------------------------------------------------
-
+# Fix import path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from storage import load_reports, save_report
+from storage import load_reports, save_report, delete_record
 
 # -------------------------------------------------------
-# Session State Initialization
+# Session State
 # -------------------------------------------------------
 
 if "logged_in" not in st.session_state:
@@ -27,14 +24,10 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 # -------------------------------------------------------
-# Page Title
+# UI
 # -------------------------------------------------------
 
 st.title("👤 Member Dashboard")
-
-# -------------------------------------------------------
-# Load Data
-# -------------------------------------------------------
 
 reports = load_reports()
 
@@ -43,7 +36,7 @@ if not reports:
     st.stop()
 
 # -------------------------------------------------------
-# Login Section (Only if not logged in)
+# LOGIN
 # -------------------------------------------------------
 
 if not st.session_state.logged_in:
@@ -70,14 +63,12 @@ if not st.session_state.logged_in:
             st.error("❌ Incorrect password")
 
         else:
-            # Save login state
             st.session_state.logged_in = True
             st.session_state.user = selected_name
-
             st.rerun()
 
 # -------------------------------------------------------
-# Dashboard (After Login)
+# DASHBOARD
 # -------------------------------------------------------
 
 else:
@@ -86,15 +77,10 @@ else:
 
     st.success(f"Welcome {selected_name} 👋")
 
-    # Logout Button
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.user = None
         st.rerun()
-
-    # -------------------------------------------------------
-    # Load User Data
-    # -------------------------------------------------------
 
     user_data = reports[selected_name]
     df = pd.DataFrame(user_data)
@@ -103,10 +89,6 @@ else:
         st.info("No reports available")
         st.stop()
 
-    # -------------------------------------------------------
-    # Get Latest Profile (LOCKED FIELDS)
-    # -------------------------------------------------------
-
     latest = df.iloc[-1]
 
     height = latest.get("Height", 0)
@@ -114,7 +96,7 @@ else:
     age = latest.get("Age", 25)
 
     # -------------------------------------------------------
-    # Show Latest Stats
+    # STATS
     # -------------------------------------------------------
 
     st.subheader("📊 Latest Stats")
@@ -126,7 +108,7 @@ else:
     col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
 
     # -------------------------------------------------------
-    # Add New Progress (User Input)
+    # ADD PROGRESS
     # -------------------------------------------------------
 
     st.divider()
@@ -144,22 +126,14 @@ else:
         visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
         subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0)
 
-    # -------------------------------------------------------
-    # Save Progress
-    # -------------------------------------------------------
-
     if st.button("Save Progress"):
 
         new_record = {
             "Name": selected_name,
             "Date": datetime.now().strftime("%Y-%m-%d"),
-
-            # Locked fields (auto-filled)
             "Height": height,
             "Gender": gender,
             "Age": age,
-
-            # New inputs
             "Weight": weight,
             "BodyFat": bodyfat,
             "MuscleMass": muscle_mass,
@@ -170,13 +144,11 @@ else:
 
         save_report(selected_name, new_record)
 
-        st.success("✅ Progress saved successfully!")
-
-        # Auto refresh UI
+        st.success("✅ Progress saved!")
         st.rerun()
 
     # -------------------------------------------------------
-    # Progress Charts
+    # CHARTS
     # -------------------------------------------------------
 
     st.subheader("📈 Progress")
@@ -191,56 +163,57 @@ else:
         st.line_chart(df["MuscleMass"])
 
     # -------------------------------------------------------
-    # Weekly AI Insights
+    # INSIGHTS
     # -------------------------------------------------------
-
-    def generate_insights(df):
-
-        if len(df) < 2:
-            return ["Not enough data yet"]
-
-        insights = []
-
-        recent = df.tail(7)
-
-        # Weight trend
-        weight_change = recent["Weight"].iloc[-1] - recent["Weight"].iloc[0]
-
-        if weight_change < -1:
-            insights.append("🔥 Great fat loss this week")
-        elif weight_change > 1:
-            insights.append("⚠️ Weight increased - review diet")
-        else:
-            insights.append("👍 Weight stable")
-
-        # Body fat trend
-        if "BodyFat" in recent:
-            bf_change = recent["BodyFat"].iloc[-1] - recent["BodyFat"].iloc[0]
-
-            if bf_change < -1:
-                insights.append("💪 Body fat decreasing")
-            elif bf_change > 1:
-                insights.append("⚠️ Body fat increased")
-
-        # Muscle trend
-        if "MuscleMass" in recent:
-            muscle_change = recent["MuscleMass"].iloc[-1] - recent["MuscleMass"].iloc[0]
-
-            if muscle_change > 0:
-                insights.append("🏋️ Muscle gain detected")
-            elif muscle_change < 0:
-                insights.append("⚠️ Muscle loss - increase protein")
-
-        return insights
 
     st.subheader("🧠 Weekly Insights")
 
-    for insight in generate_insights(df):
-        st.info(insight)
+    if len(df) > 1:
+
+        recent = df.tail(7)
+
+        weight_change = recent["Weight"].iloc[-1] - recent["Weight"].iloc[0]
+
+        if weight_change < -1:
+            st.info("🔥 Great fat loss this week")
+        elif weight_change > 1:
+            st.warning("⚠️ Weight increased")
+        else:
+            st.info("👍 Weight stable")
 
     # -------------------------------------------------------
-    # Full Data Table
+    # TABLE
     # -------------------------------------------------------
 
     st.subheader("📋 Full Report")
     st.dataframe(df, use_container_width=True)
+
+    # -------------------------------------------------------
+    # DELETE RECORD
+    # -------------------------------------------------------
+
+    st.subheader("🗑️ Delete Record")
+
+    if len(df) > 0:
+
+        options = [
+            f"{i} | {row.get('Date','')} | {row.get('Weight','')} kg"
+            for i, row in df.iterrows()
+        ]
+
+        selected_index = st.selectbox(
+            "Select record",
+            range(len(options)),
+            format_func=lambda x: options[x]
+        )
+
+        confirm = st.checkbox("Confirm delete")
+
+        if st.button("Delete Selected Record"):
+
+            if confirm:
+                delete_record(selected_name, selected_index)
+                st.success("🗑️ Record deleted!")
+                st.rerun()
+            else:
+                st.warning("Please confirm deletion")
