@@ -1,27 +1,4 @@
-st.markdown("""
-<style>
 
-/* Change primary button color */
-.stButton > button {
-    background-color: #22C55E;
-    color: white;
-    border-radius: 8px;
-}
-
-/* Change metric background slightly */
-[data-testid="stMetric"] {
-    background-color: #F0FDF4;
-    padding: 8px;
-    border-radius: 8px;
-}
-
-/* Add soft background */
-.block-container {
-    background-color: #F8FAFC;
-}
-
-</style>
-""", unsafe_allow_html=True)
 
 # ============================================================
 # FitCom - Body Composition Analytics Platform
