@@ -1,24 +1,34 @@
 # ============================================================
-# FitCom - Member Dashboard (Final Fixed Version)
+# FitCom - Member Dashboard
+# Author: Anand Kumar
+#
+# Notes:
+# - Handles login + member-specific dashboard
+# - Allows user to track progress over time
+# - Age is intentionally hidden from UI (privacy)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import sys
 import os
-from sidebar import render_sidebar
-
-render_sidebar()
 from datetime import datetime
 
-# Fix import path
+# -------------------------------------------------------
+# Load shared sidebar (keeps UI consistent across pages)
+# -------------------------------------------------------
+from sidebar import render_sidebar
+render_sidebar()
+
+# Fix path so we can import modules from root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from storage import load_reports, save_report, delete_record
 
 # -------------------------------------------------------
-# Session State
+# SESSION STATE (basic login persistence)
 # -------------------------------------------------------
+# Keeps user logged in across reruns
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -27,20 +37,25 @@ if "user" not in st.session_state:
     st.session_state.user = None
 
 # -------------------------------------------------------
-# UI
+# PAGE TITLE
 # -------------------------------------------------------
 
 st.title("👤 Member Dashboard")
 
+# Load all reports (grouped by member name)
 reports = load_reports()
 
+# Safety check – no data available
 if not reports:
     st.warning("⚠️ No members found. Please add a report first.")
     st.stop()
 
 # -------------------------------------------------------
-# LOGIN
+# LOGIN SECTION
 # -------------------------------------------------------
+# Very simple auth:
+# Username = Name
+# Password = Name (can be upgraded later)
 
 if not st.session_state.logged_in:
 
@@ -66,12 +81,13 @@ if not st.session_state.logged_in:
             st.error("❌ Incorrect password")
 
         else:
+            # Save login state
             st.session_state.logged_in = True
             st.session_state.user = selected_name
             st.rerun()
 
 # -------------------------------------------------------
-# DASHBOARD
+# MAIN DASHBOARD (AFTER LOGIN)
 # -------------------------------------------------------
 
 else:
@@ -80,10 +96,15 @@ else:
 
     st.success(f"Welcome {selected_name} 👋")
 
+    # Simple logout
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.user = None
         st.rerun()
+
+    # -------------------------------------------------------
+    # LOAD USER DATA
+    # -------------------------------------------------------
 
     user_data = reports[selected_name]
     df = pd.DataFrame(user_data)
@@ -92,14 +113,20 @@ else:
         st.info("No reports available")
         st.stop()
 
+    # -------------------------------------------------------
+    # Hide sensitive fields (Age not shown in UI)
+    # -------------------------------------------------------
+    df_display = df.drop(columns=["Age"], errors="ignore")
+
+    # Latest record (used for current stats)
     latest = df.iloc[-1]
 
+    # Lock profile fields (should not change per entry)
     height = latest.get("Height", 0)
     gender = latest.get("Gender", "Male")
-    age = latest.get("Age", 25)
 
     # -------------------------------------------------------
-    # STATS
+    # CURRENT STATS (quick snapshot)
     # -------------------------------------------------------
 
     st.subheader("📊 Latest Stats")
@@ -111,8 +138,9 @@ else:
     col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
 
     # -------------------------------------------------------
-    # ADD PROGRESS
+    # ADD NEW PROGRESS ENTRY
     # -------------------------------------------------------
+    # Only dynamic metrics are entered (profile stays locked)
 
     st.divider()
     st.subheader("➕ Add New Progress")
@@ -120,23 +148,27 @@ else:
     col1, col2 = st.columns(2)
 
     with col1:
-        weight = st.number_input("Weight (kg)", 30.0, 200.0)
-        bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
-        muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0)
+        weight = st.number_input("Weight (kg)", 30.0, 200.0, key="weight")
+        bodyfat = st.number_input("Body Fat %", 1.0, 60.0, key="bodyfat")
+        muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0, key="muscle")
 
     with col2:
-        body_water = st.number_input("Body Water %", 1.0, 80.0)
-        visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
-        subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0)
+        body_water = st.number_input("Body Water %", 1.0, 80.0, key="water")
+        visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0, key="visceral")
+        subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0, key="subfat")
 
+    # Save new progress entry
     if st.button("Save Progress"):
 
         new_record = {
             "Name": selected_name,
             "Date": datetime.now().strftime("%Y-%m-%d"),
+
+            # Locked fields (carried forward)
             "Height": height,
             "Gender": gender,
-            "Age": age,
+
+            # Dynamic tracking fields
             "Weight": weight,
             "BodyFat": bodyfat,
             "MuscleMass": muscle_mass,
@@ -151,8 +183,9 @@ else:
         st.rerun()
 
     # -------------------------------------------------------
-    # CHARTS
+    # PROGRESS CHARTS
     # -------------------------------------------------------
+    # Simple trend tracking
 
     st.subheader("📈 Progress")
 
@@ -166,7 +199,7 @@ else:
         st.line_chart(df["MuscleMass"])
 
     # -------------------------------------------------------
-    # INSIGHTS
+    # WEEKLY INSIGHTS (basic logic for now)
     # -------------------------------------------------------
 
     st.subheader("🧠 Weekly Insights")
@@ -185,38 +218,37 @@ else:
             st.info("👍 Weight stable")
 
     # -------------------------------------------------------
-    # TABLE
+    # FULL DATA TABLE (Age hidden)
     # -------------------------------------------------------
 
     st.subheader("📋 Full Report")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df_display, use_container_width=True)
 
     # -------------------------------------------------------
     # DELETE RECORD
     # -------------------------------------------------------
+    # Allows removing incorrect entries
 
     st.subheader("🗑️ Delete Record")
 
-    if len(df) > 0:
+    options = [
+        f"{i} | {row.get('Date','')} | {row.get('Weight','')} kg"
+        for i, row in df.iterrows()
+    ]
 
-        options = [
-            f"{i} | {row.get('Date','')} | {row.get('Weight','')} kg"
-            for i, row in df.iterrows()
-        ]
+    selected_index = st.selectbox(
+        "Select record",
+        range(len(options)),
+        format_func=lambda x: options[x]
+    )
 
-        selected_index = st.selectbox(
-            "Select record",
-            range(len(options)),
-            format_func=lambda x: options[x]
-        )
+    confirm = st.checkbox("Confirm delete")
 
-        confirm = st.checkbox("Confirm delete")
+    if st.button("Delete Selected Record"):
 
-        if st.button("Delete Selected Record"):
-
-            if confirm:
-                delete_record(selected_name, selected_index)
-                st.success("🗑️ Record deleted!")
-                st.rerun()
-            else:
-                st.warning("Please confirm deletion")
+        if confirm:
+            delete_record(selected_name, selected_index)
+            st.success("🗑️ Record deleted!")
+            st.rerun()
+        else:
+            st.warning("Please confirm deletion")
