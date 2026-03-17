@@ -6,6 +6,9 @@ import streamlit as st
 import pandas as pd
 import sys
 import os
+from sidebar import render_sidebar
+
+render_sidebar()
 from datetime import datetime
 
 # Fix import path
