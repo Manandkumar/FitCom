@@ -1,6 +1,5 @@
 # ============================================================
-# FitCom - Sidebar Navigation (Styled + Grouped)
-# Author: Anand Kumar
+# FitCom - Sidebar Navigation (Organized & Clean)
 # ============================================================
 
 import streamlit as st
@@ -8,34 +7,13 @@ import streamlit as st
 def render_sidebar():
 
     # -------------------------------------------------------
-    # Sidebar Styling
+    # Branding
     # -------------------------------------------------------
 
-    st.markdown(
-        """
-        <style>
+    st.sidebar.title("🏋️ FitCom")
+    st.sidebar.caption("Track • Transform • Progress")
 
-        /* Sidebar background */
-        section[data-testid="stSidebar"] {
-            background-color: #ffffff;
-        }
-
-        /* Add spacing so navigation appears below the logo */
-        section[data-testid="stSidebarNav"] {
-            margin-top: 120px;
-        }
-
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # -------------------------------------------------------
-    # Logo / Title (Optional - uncomment if needed)
-    # -------------------------------------------------------
-
-    # st.sidebar.image("logo.png", width=160)
-    # st.sidebar.title("FitCom")
+    st.sidebar.markdown("---")
 
     # -------------------------------------------------------
     # MEMBER SECTION
@@ -44,13 +22,13 @@ def render_sidebar():
     st.sidebar.markdown("## 👤 Member")
 
     st.sidebar.page_link(
-        "pages/9_Member_Dashboard.py",
-        label="Dashboard"
+        "pages/2_Progress.py",
+        label="My Progress"
     )
 
     st.sidebar.page_link(
-        "pages/2_Progress.py",
-        label="Progress"
+        "pages/8_Weekly_Report.py",
+        label="Weekly Report"
     )
 
     st.sidebar.markdown("---")
@@ -62,8 +40,13 @@ def render_sidebar():
     st.sidebar.markdown("## 🏋️ Trainer")
 
     st.sidebar.page_link(
-        "pages/1_Add_NewMember.py",
-        label="Add Report"
+        "pages/1_Add_Report.py",
+        label="Add Member / Report"
+    )
+
+    st.sidebar.page_link(
+        "pages/6_Edit_Report.py",
+        label="Edit Report"
     )
 
     st.sidebar.page_link(
@@ -74,18 +57,39 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # SYSTEM SECTION
+    # AI FEATURES
     # -------------------------------------------------------
 
-    st.sidebar.markdown("## ⚙️ System")
+    st.sidebar.markdown("## 🤖 AI Features")
 
-    st.sidebar.caption("More features coming soon...")
+    st.sidebar.page_link(
+        "pages/4_AI_Coach.py",
+        label="AI Coach"
+    )
 
-    # -------------------------------------------------------
-    # Contact / Support Section (Your Original)
-    # -------------------------------------------------------
+    st.sidebar.page_link(
+        "pages/5_Athlete_Comparison.py",
+        label="Athlete Comparison"
+    )
 
     st.sidebar.markdown("---")
+
+    # -------------------------------------------------------
+    # ADMIN SECTION
+    # -------------------------------------------------------
+
+    st.sidebar.markdown("## ⚙️ Admin")
+
+    st.sidebar.page_link(
+        "pages/7_Admin_Dashboard.py",
+        label="Admin Dashboard"
+    )
+
+    st.sidebar.markdown("---")
+
+    # -------------------------------------------------------
+    # SUPPORT
+    # -------------------------------------------------------
 
     st.sidebar.markdown("### Need Help?")
 
