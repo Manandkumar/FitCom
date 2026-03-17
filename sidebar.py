@@ -44,7 +44,7 @@ def render_sidebar():
     st.sidebar.markdown("## 👤 Member")
 
     st.sidebar.page_link(
-        "pages/9_👤_Member_Dashboard.py",
+        "pages/9_Member_Dashboard.py",
         label="Dashboard"
     )
 
