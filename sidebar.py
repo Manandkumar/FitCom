@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Clean Sidebar (Balanced Layout)
+# FitCom - Sidebar (Menu Style - Clean)
 # ============================================================
 
 import streamlit as st
@@ -7,7 +7,7 @@ import streamlit as st
 def render_sidebar():
 
     # -------------------------------------------------------
-    # SIDEBAR STYLE (WHITE + CLEAN)
+    # STYLE (WHITE + CLEAN)
     # -------------------------------------------------------
 
     st.markdown("""
@@ -23,55 +23,70 @@ def render_sidebar():
         background-color: white;
     }
 
-    /* Center logo nicely */
-    .logo-container {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 10px;
+    /* Improve spacing */
+    .stRadio > div {
+        gap: 8px;
     }
 
     </style>
     """, unsafe_allow_html=True)
 
     # -------------------------------------------------------
-    # LOGO (PROPER SIZE - NOT SHRUNK)
+    # LOGO (PROPER SIZE)
     # -------------------------------------------------------
 
-    st.sidebar.markdown('<div class="logo-container">', unsafe_allow_html=True)
-    st.sidebar.image("logo.png", use_column_width=True)  # auto scales nicely
-    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+    st.sidebar.image("logo.png", use_column_width=True)
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # ALL MENU ITEMS (NO DROPDOWN)
+    # MENU (CLEAN RADIO NAV)
     # -------------------------------------------------------
 
-    if st.sidebar.button("🏠 Dashboard"):
+    menu = st.sidebar.radio(
+        "Navigation",
+        [
+            "🏠 Dashboard",
+            "📊 Progress",
+            "➕ Add Member",
+            "🏆 Leaderboard",
+            "🤖 AI Coach",
+            "⚖️ Comparison",
+            "✏️ Edit Report",
+            "📅 Weekly Report",
+            "⚙️ Admin"
+        ]
+    )
+
+    # -------------------------------------------------------
+    # NAVIGATION LOGIC
+    # -------------------------------------------------------
+
+    if menu == "🏠 Dashboard":
         st.switch_page("Dashboard.py")
 
-    if st.sidebar.button("📊 Progress"):
+    elif menu == "📊 Progress":
         st.switch_page("pages/2_Progress.py")
 
-    if st.sidebar.button("➕ Add Member / Report"):
+    elif menu == "➕ Add Member":
         st.switch_page("pages/1_Add_NewMember.py")
 
-    if st.sidebar.button("🏆 Leaderboard"):
+    elif menu == "🏆 Leaderboard":
         st.switch_page("pages/3_Leaderboard.py")
 
-    if st.sidebar.button("🤖 AI Coach"):
+    elif menu == "🤖 AI Coach":
         st.switch_page("pages/4_AI_Coach.py")
 
-    if st.sidebar.button("⚖️ Athlete Comparison"):
+    elif menu == "⚖️ Comparison":
         st.switch_page("pages/5_Athlete_Comparison.py")
 
-    if st.sidebar.button("✏️ Edit Report"):
+    elif menu == "✏️ Edit Report":
         st.switch_page("pages/6_Edit_Report.py")
 
-    if st.sidebar.button("📅 Weekly Report"):
+    elif menu == "📅 Weekly Report":
         st.switch_page("pages/8_Weekly_Report.py")
 
-    if st.sidebar.button("⚙️ Admin Dashboard"):
+    elif menu == "⚙️ Admin":
         st.switch_page("pages/7_Admin_Dashboard.py")
 
     st.sidebar.markdown("---")
