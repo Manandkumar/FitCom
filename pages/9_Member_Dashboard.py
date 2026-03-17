@@ -124,6 +124,7 @@ if st.button("Login"):
             save_report(selected_name, new_record)
 
             st.success("✅ Progress saved successfully!")
+            st.rerun()
 
         # -------------------------------------------------------
         # Charts
