@@ -4,7 +4,20 @@
 
 import streamlit as st
 import pandas as pd
+import sys
+import os
+
+# -------------------------------------------------------
+# FIX IMPORT PATH (IMPORTANT)
+# -------------------------------------------------------
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from storage import load_reports
+
+# -------------------------------------------------------
+# UI
+# -------------------------------------------------------
 
 st.title("👤 Member Dashboard")
 
@@ -14,7 +27,7 @@ st.title("👤 Member Dashboard")
 
 reports = load_reports()
 
-# Debug (remove later if needed)
+# DEBUG (uncomment if needed)
 # st.write("DEBUG:", reports)
 
 # -------------------------------------------------------
@@ -42,11 +55,13 @@ selected_name = st.selectbox(
 
 password = st.text_input("Enter Password", type="password")
 
+login = st.button("Login")
+
 # -------------------------------------------------------
 # Login Logic
 # -------------------------------------------------------
 
-if st.button("Login"):
+if login:
 
     if not selected_name:
         st.warning("Please select your name")
@@ -98,7 +113,7 @@ if st.button("Login"):
                 st.line_chart(df["MuscleMass"])
 
             # -------------------------------------------------------
-            # Full Table
+            # Full Data Table
             # -------------------------------------------------------
 
             st.subheader("📋 Full Report")
