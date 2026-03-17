@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Sidebar Navigation (Final FIXED)
+# FitCom - Sidebar Navigation (FINAL WORKING VERSION)
 # ============================================================
 
 import streamlit as st
@@ -7,22 +7,30 @@ import streamlit as st
 def render_sidebar():
 
     # -------------------------------------------------------
-    # 🔥 HIDE DEFAULT STREAMLIT NAVIGATION
+    # 🔥 FORCE HIDE STREAMLIT DEFAULT NAVIGATION
     # -------------------------------------------------------
 
     st.markdown("""
     <style>
-    section[data-testid="stSidebarNav"] {
-        display: none;
+
+    /* Hide default multipage navigation */
+    div[data-testid="stSidebarNav"] {
+        display: none !important;
     }
+
+    /* Remove extra padding at top */
+    div[data-testid="stSidebarContent"] {
+        padding-top: 0rem;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
     # -------------------------------------------------------
-    # LOGO + BRANDING (NOW AT TRUE TOP)
+    # 🧠 LOGO + BRANDING (TOP FIXED)
     # -------------------------------------------------------
 
-    st.sidebar.image("logo.png", width=120)
+    st.sidebar.image("logo.png", width=130)
 
     st.sidebar.markdown(
         "<h4 style='text-align:center; margin-top:-10px;'>SyntraAI</h4>",
@@ -34,32 +42,32 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # 👤 MEMBER
+    # 👤 MEMBER SECTION
     # -------------------------------------------------------
 
     st.sidebar.markdown("## 👤 Member")
 
-    if st.sidebar.button("My Progress"):
+    if st.sidebar.button("📊 My Progress"):
         st.switch_page("pages/2_Progress.py")
 
-    if st.sidebar.button("Weekly Report"):
+    if st.sidebar.button("📅 Weekly Report"):
         st.switch_page("pages/8_Weekly_Report.py")
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # 🏋️ TRAINER
+    # 🏋️ TRAINER SECTION
     # -------------------------------------------------------
 
     st.sidebar.markdown("## 🏋️ Trainer")
 
-    if st.sidebar.button("Add Member / Report"):
+    if st.sidebar.button("➕ Add Member / Report"):
         st.switch_page("pages/1_Add_NewMember.py")
 
-    if st.sidebar.button("Edit Report"):
+    if st.sidebar.button("✏️ Edit Report"):
         st.switch_page("pages/6_Edit_Report.py")
 
-    if st.sidebar.button("Leaderboard"):
+    if st.sidebar.button("🏆 Leaderboard"):
         st.switch_page("pages/3_Leaderboard.py")
 
     st.sidebar.markdown("---")
@@ -70,27 +78,27 @@ def render_sidebar():
 
     st.sidebar.markdown("## 🤖 AI Features")
 
-    if st.sidebar.button("AI Coach"):
+    if st.sidebar.button("🧠 AI Coach"):
         st.switch_page("pages/4_AI_Coach.py")
 
-    if st.sidebar.button("Athlete Comparison"):
+    if st.sidebar.button("⚖️ Athlete Comparison"):
         st.switch_page("pages/5_Athlete_Comparison.py")
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # ⚙️ ADMIN
+    # ⚙️ ADMIN SECTION
     # -------------------------------------------------------
 
     st.sidebar.markdown("## ⚙️ Admin")
 
-    if st.sidebar.button("Admin Dashboard"):
+    if st.sidebar.button("📋 Admin Dashboard"):
         st.switch_page("pages/7_Admin_Dashboard.py")
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # SUPPORT
+    # 📞 SUPPORT
     # -------------------------------------------------------
 
     st.sidebar.markdown("### Need Help?")
