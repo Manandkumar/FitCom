@@ -1,5 +1,5 @@
 # ============================================================
-# Syntra AI Sidebar
+# FitCom - Sidebar Navigation (Styled + Grouped)
 # Author: Anand Kumar
 # ============================================================
 
@@ -7,7 +7,10 @@ import streamlit as st
 
 def render_sidebar():
 
-    # Sidebar styling
+    # -------------------------------------------------------
+    # Sidebar Styling
+    # -------------------------------------------------------
+
     st.markdown(
         """
         <style>
@@ -25,12 +28,62 @@ def render_sidebar():
         </style>
         """,
         unsafe_allow_html=True
-        
     )
 
-    # ------------------------------------------------------------
-    # Contact / Support Section
-    # ------------------------------------------------------------
+    # -------------------------------------------------------
+    # Logo / Title (Optional - uncomment if needed)
+    # -------------------------------------------------------
+
+    # st.sidebar.image("logo.png", width=160)
+    # st.sidebar.title("FitCom")
+
+    # -------------------------------------------------------
+    # MEMBER SECTION
+    # -------------------------------------------------------
+
+    st.sidebar.markdown("## 👤 Member")
+
+    st.sidebar.page_link(
+        "pages/9_👤_Member_Dashboard.py",
+        label="Dashboard"
+    )
+
+    st.sidebar.page_link(
+        "pages/2_Progress.py",
+        label="Progress"
+    )
+
+    st.sidebar.markdown("---")
+
+    # -------------------------------------------------------
+    # TRAINER SECTION
+    # -------------------------------------------------------
+
+    st.sidebar.markdown("## 🏋️ Trainer")
+
+    st.sidebar.page_link(
+        "pages/1_Add_Report.py",
+        label="Add Report"
+    )
+
+    st.sidebar.page_link(
+        "pages/3_Leaderboard.py",
+        label="Leaderboard"
+    )
+
+    st.sidebar.markdown("---")
+
+    # -------------------------------------------------------
+    # SYSTEM SECTION
+    # -------------------------------------------------------
+
+    st.sidebar.markdown("## ⚙️ System")
+
+    st.sidebar.caption("More features coming soon...")
+
+    # -------------------------------------------------------
+    # Contact / Support Section (Your Original)
+    # -------------------------------------------------------
 
     st.sidebar.markdown("---")
 
@@ -42,14 +95,3 @@ def render_sidebar():
         📧 manandkumar@gmail.com
         """
     )
-    
-
-
-    # Logo at the top
-    # st.sidebar.image("logo.png", width=160)
-
-    # App title
-    # st.sidebar.title("Syntra AI")
-
-    # Divider
-    # st.sidebar.markdown("---")
