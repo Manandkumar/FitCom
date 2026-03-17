@@ -82,12 +82,13 @@ def render_sidebar():
     # Using page_link → behaves like real navigation menu
     # No buttons, no radio → clean UX
     # -------------------------------------------------------
-
     st.sidebar.page_link("Dashboard.py", label="🏠 Dashboard")
+
+    st.sidebar.page_link("pages/9_Member_Dashboard.py", label="👤 Individual hboard")  # ✅ ADDED
 
     st.sidebar.page_link("pages/2_Progress.py", label="📊 Progress")
 
-    st.sidebar.page_link("pages/1_Add_NewMember.py", label="➕ Add Member")
+    st.sidebar.page_link("pages/1_Add_NewMember.py", label="➕ Add New Member")
 
     st.sidebar.page_link("pages/3_Leaderboard.py", label="🏆 Leaderboard")
 
