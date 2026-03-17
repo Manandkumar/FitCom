@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Sidebar Navigation (Organized + Branding)
+# FitCom - Sidebar Navigation (Final with Top Logo)
 # ============================================================
 
 import streamlit as st
@@ -7,24 +7,29 @@ import streamlit as st
 def render_sidebar():
 
     # -------------------------------------------------------
-    # LOGO + BRANDING
+    # FIX: Push default navigation slightly down
     # -------------------------------------------------------
 
-    st.sidebar.markdown(
-        "<div style='text-align:center;'>",
-        unsafe_allow_html=True
-    )
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebarNav"] {
+        margin-top: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # -------------------------------------------------------
+    # LOGO + BRANDING (TOP)
+    # -------------------------------------------------------
 
     st.sidebar.image("logo.png", width=120)
 
     st.sidebar.markdown(
-        "<h4 style='margin-bottom:0;'>SyntraAI</h4>",
+        "<h4 style='text-align:center; margin-top:-10px;'>SyntraAI</h4>",
         unsafe_allow_html=True
     )
 
     st.sidebar.caption("Track • Transform • Progress")
-
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
     st.sidebar.markdown("---")
 
