@@ -40,7 +40,7 @@ def render_sidebar():
     st.sidebar.markdown("## 🏋️ Trainer")
 
     st.sidebar.page_link(
-        "pages/1_Add_Report.py",
+        "pages/1_Add_NewMember.py",
         label="Add Member / Report"
     )
 
