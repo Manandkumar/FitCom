@@ -1,33 +1,42 @@
 # ============================================================
-# FitCom - Ultra Clean Sidebar
+# FitCom - Clean Sidebar (Logo Only + White Background)
 # ============================================================
 
 import streamlit as st
 
 def render_sidebar():
 
-    # Hide default navigation
+    # -------------------------------------------------------
+    # GLOBAL SIDEBAR STYLING
+    # -------------------------------------------------------
+
     st.markdown("""
     <style>
-    div[data-testid="stSidebarNav"] {display: none;}
+
+    /* Hide default Streamlit navigation */
+    div[data-testid="stSidebarNav"] {
+        display: none;
+    }
+
+    /* Make full sidebar white */
+    section[data-testid="stSidebar"] {
+        background-color: white;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
-    # -------------------------
-    # LOGO
-    # -------------------------
+    # -------------------------------------------------------
+    # LOGO (ONLY, NO TEXT)
+    # -------------------------------------------------------
 
     st.sidebar.image("logo.png", width=110)
-    st.sidebar.markdown(
-        "<p style='text-align:center; font-weight:600;'>SyntraAI</p>",
-        unsafe_allow_html=True
-    )
 
     st.sidebar.markdown("---")
 
-    # -------------------------
-    # MAIN NAV (ONLY 3)
-    # -------------------------
+    # -------------------------------------------------------
+    # MAIN NAV (CLEAN)
+    # -------------------------------------------------------
 
     if st.sidebar.button("🏠 Dashboard"):
         st.switch_page("Dashboard.py")
@@ -40,9 +49,9 @@ def render_sidebar():
 
     st.sidebar.markdown("---")
 
-    # -------------------------
-    # SINGLE DROPDOWN FOR REST
-    # -------------------------
+    # -------------------------------------------------------
+    # MORE OPTIONS (DROPDOWN)
+    # -------------------------------------------------------
 
     option = st.sidebar.selectbox(
         "More",
@@ -74,3 +83,11 @@ def render_sidebar():
 
     elif option == "Admin Dashboard":
         st.switch_page("pages/7_Admin_Dashboard.py")
+
+    st.sidebar.markdown("---")
+
+    # -------------------------------------------------------
+    # SUPPORT (MINIMAL)
+    # -------------------------------------------------------
+
+    st.sidebar.caption("📧 manandkumar@gmail.com")
