@@ -8,7 +8,7 @@ import sys
 import os
 
 # -------------------------------------------------------
-# FIX IMPORT PATH (IMPORTANT)
+# FIX IMPORT PATH (IMPORTANT for pages folder)
 # -------------------------------------------------------
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -27,11 +27,8 @@ st.title("👤 Member Dashboard")
 
 reports = load_reports()
 
-# DEBUG (uncomment if needed)
-# st.write("DEBUG:", reports)
-
 # -------------------------------------------------------
-# Handle Empty Case
+# Empty Case
 # -------------------------------------------------------
 
 if not reports:
@@ -55,13 +52,11 @@ selected_name = st.selectbox(
 
 password = st.text_input("Enter Password", type="password")
 
-login = st.button("Login")
-
 # -------------------------------------------------------
 # Login Logic
 # -------------------------------------------------------
 
-if login:
+if st.button("Login"):
 
     if not selected_name:
         st.warning("Please select your name")
@@ -113,7 +108,7 @@ if login:
                 st.line_chart(df["MuscleMass"])
 
             # -------------------------------------------------------
-            # Full Data Table
+            # Full Table
             # -------------------------------------------------------
 
             st.subheader("📋 Full Report")
