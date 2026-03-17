@@ -1,23 +1,17 @@
 # ============================================================
-# FitCom - Member Dashboard
+# FitCom - Member Dashboard (With Add Progress)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import sys
 import os
+from datetime import datetime
 
-# -------------------------------------------------------
-# FIX IMPORT PATH (IMPORTANT for pages folder)
-# -------------------------------------------------------
-
+# Fix import path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from storage import load_reports
-
-# -------------------------------------------------------
-# UI
-# -------------------------------------------------------
+from storage import load_reports, save_report
 
 st.title("👤 Member Dashboard")
 
@@ -27,16 +21,12 @@ st.title("👤 Member Dashboard")
 
 reports = load_reports()
 
-# -------------------------------------------------------
-# Empty Case
-# -------------------------------------------------------
-
 if not reports:
     st.warning("⚠️ No members found. Please add a report first.")
     st.stop()
 
 # -------------------------------------------------------
-# Login Section
+# Login
 # -------------------------------------------------------
 
 st.subheader("🔐 Login")
@@ -68,48 +58,91 @@ if st.button("Login"):
         st.success(f"Welcome {selected_name} 👋")
 
         user_data = reports[selected_name]
-
         df = pd.DataFrame(user_data)
 
-        if df.empty:
-            st.info("No reports available")
-        else:
+        # -------------------------------------------------------
+        # Latest Profile (LOCKED FIELDS)
+        # -------------------------------------------------------
 
-            # -------------------------------------------------------
-            # Latest Stats
-            # -------------------------------------------------------
+        latest = df.iloc[-1]
 
-            latest = df.iloc[-1]
+        height = latest.get("Height", 0)
+        gender = latest.get("Gender", "Male")
+        age = latest.get("Age", 25)
 
-            st.subheader("📊 Latest Stats")
+        # -------------------------------------------------------
+        # Show Stats
+        # -------------------------------------------------------
 
-            col1, col2, col3 = st.columns(3)
+        st.subheader("📊 Latest Stats")
 
-            col1.metric("Weight", f"{latest.get('Weight', 0)} kg")
-            col2.metric("Body Fat", f"{latest.get('BodyFat', 0)} %")
-            col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
+        col1, col2, col3 = st.columns(3)
 
-            # -------------------------------------------------------
-            # Charts
-            # -------------------------------------------------------
+        col1.metric("Weight", f"{latest.get('Weight', 0)} kg")
+        col2.metric("Body Fat", f"{latest.get('BodyFat', 0)} %")
+        col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
 
-            st.subheader("📈 Progress")
+        # -------------------------------------------------------
+        # Add New Record (🔥 MAIN FEATURE)
+        # -------------------------------------------------------
 
-            if "Weight" in df.columns:
-                st.write("Weight Trend")
-                st.line_chart(df["Weight"])
+        st.divider()
+        st.subheader("➕ Add New Progress")
 
-            if "BodyFat" in df.columns:
-                st.write("Body Fat Trend")
-                st.line_chart(df["BodyFat"])
+        col1, col2 = st.columns(2)
 
-            if "MuscleMass" in df.columns:
-                st.write("Muscle Mass Trend")
-                st.line_chart(df["MuscleMass"])
+        with col1:
+            weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0)
+            bodyfat = st.number_input("Body Fat %", min_value=1.0, max_value=60.0)
+            muscle_mass = st.number_input("Muscle Mass (kg)", min_value=10.0, max_value=100.0)
 
-            # -------------------------------------------------------
-            # Full Table
-            # -------------------------------------------------------
+        with col2:
+            body_water = st.number_input("Body Water %", min_value=1.0, max_value=80.0)
+            visceral_fat = st.number_input("Visceral Fat", min_value=1.0, max_value=30.0)
+            subcutaneous_fat = st.number_input("Subcutaneous Fat %", min_value=1.0, max_value=50.0)
 
-            st.subheader("📋 Full Report")
-            st.dataframe(df, use_container_width=True)
+        if st.button("Save Progress"):
+
+            new_record = {
+                "Name": selected_name,
+                "Date": datetime.now().strftime("%Y-%m-%d"),
+
+                # Locked fields
+                "Height": height,
+                "Gender": gender,
+                "Age": age,
+
+                # New inputs
+                "Weight": weight,
+                "BodyFat": bodyfat,
+                "MuscleMass": muscle_mass,
+                "BodyWater": body_water,
+                "VisceralFat": visceral_fat,
+                "SubcutaneousFat": subcutaneous_fat
+            }
+
+            save_report(selected_name, new_record)
+
+            st.success("✅ Progress saved successfully!")
+
+        # -------------------------------------------------------
+        # Charts
+        # -------------------------------------------------------
+
+        st.subheader("📈 Progress")
+
+        if "Weight" in df.columns:
+            st.line_chart(df["Weight"])
+
+        if "BodyFat" in df.columns:
+            st.line_chart(df["BodyFat"])
+
+        if "MuscleMass" in df.columns:
+            st.line_chart(df["MuscleMass"])
+
+        # -------------------------------------------------------
+        # Full Data
+        # -------------------------------------------------------
+
+        st.subheader("📋 Full Report")
+        st.dataframe(df, use_container_width=True)
