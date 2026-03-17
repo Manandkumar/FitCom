@@ -3,26 +3,30 @@
 # ============================================================
 
 import streamlit as st
-import json
 import pandas as pd
-import os
+from storage import load_reports
 
 st.title("👤 Member Dashboard")
 
 # -------------------------------------------------------
-# Load Reports (adjust if using database.py later)
+# Load Data
 # -------------------------------------------------------
-
-def load_reports():
-    if os.path.exists("data/reports.json"):
-        with open("data/reports.json", "r") as f:
-            return json.load(f)
-    return {}
 
 reports = load_reports()
 
+# Debug (remove later if needed)
+# st.write("DEBUG:", reports)
+
 # -------------------------------------------------------
-# Dropdown Login
+# Handle Empty Case
+# -------------------------------------------------------
+
+if not reports:
+    st.warning("⚠️ No members found. Please add a report first.")
+    st.stop()
+
+# -------------------------------------------------------
+# Login Section
 # -------------------------------------------------------
 
 st.subheader("🔐 Login")
@@ -38,23 +42,32 @@ selected_name = st.selectbox(
 
 password = st.text_input("Enter Password", type="password")
 
+# -------------------------------------------------------
+# Login Logic
+# -------------------------------------------------------
+
 if st.button("Login"):
 
     if not selected_name:
         st.warning("Please select your name")
 
     elif password != selected_name:
-        st.error("Incorrect password")
+        st.error("❌ Incorrect password")
 
     else:
         st.success(f"Welcome {selected_name} 👋")
 
         user_data = reports[selected_name]
+
         df = pd.DataFrame(user_data)
 
         if df.empty:
             st.info("No reports available")
         else:
+
+            # -------------------------------------------------------
+            # Latest Stats
+            # -------------------------------------------------------
 
             latest = df.iloc[-1]
 
@@ -64,18 +77,29 @@ if st.button("Login"):
 
             col1.metric("Weight", f"{latest.get('Weight', 0)} kg")
             col2.metric("Body Fat", f"{latest.get('BodyFat', 0)} %")
-            col3.metric("Muscle", f"{latest.get('MuscleMass', 0)} kg")
+            col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
+
+            # -------------------------------------------------------
+            # Charts
+            # -------------------------------------------------------
 
             st.subheader("📈 Progress")
 
             if "Weight" in df.columns:
+                st.write("Weight Trend")
                 st.line_chart(df["Weight"])
 
             if "BodyFat" in df.columns:
+                st.write("Body Fat Trend")
                 st.line_chart(df["BodyFat"])
 
             if "MuscleMass" in df.columns:
+                st.write("Muscle Mass Trend")
                 st.line_chart(df["MuscleMass"])
 
-            st.subheader("📋 Full Data")
+            # -------------------------------------------------------
+            # Full Table
+            # -------------------------------------------------------
+
+            st.subheader("📋 Full Report")
             st.dataframe(df, use_container_width=True)
