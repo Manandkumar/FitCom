@@ -1,144 +1,142 @@
 # ============================================================
-# FitCom - Athlete Comparison
+# FitCom - Athlete Comparison (Final Refactored Version)
 # Author: Anand Kumar
 #
-# Notes:
-# - Compare latest metrics across multiple athletes
-# - Includes bar + radar visualization
-# - Age is hidden from UI (privacy)
+# Purpose:
+# Compare multiple athletes side-by-side using latest data
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import os
-import plotly.graph_objects as go
-
-# -------------------------------------------------------
-# Load shared sidebar (consistent UI across app)
-# -------------------------------------------------------
 
 from sidebar import render_sidebar
-render_sidebar()
+from ui.theme import apply_theme
+from ui.components import page_header, section, card_start, card_end
 
 # -------------------------------------------------------
-# CONFIG
+# INIT
 # -------------------------------------------------------
+
+render_sidebar()
+apply_theme()
 
 FILE_NAME = "fitcom_reports.csv"
 
-st.title("🏅 Athlete Comparison")
+page_header("Athlete Comparison", "Compare fitness metrics side-by-side")
 
 # -------------------------------------------------------
 # LOAD DATA
 # -------------------------------------------------------
 
 if not os.path.exists(FILE_NAME):
-
     st.info("No reports available yet.")
     st.stop()
 
-# Load dataset
 df = pd.read_csv(FILE_NAME)
 
-# Ensure Date column is proper datetime
+# Ensure date format
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
 # -------------------------------------------------------
-# CLEAN DATA FOR UI
-# -------------------------------------------------------
-# Remove sensitive fields (Age not shown)
-
-df_display = df.drop(columns=["Age"], errors="ignore")
-
-# -------------------------------------------------------
-# USER SELECTION
+# SELECT ATHLETES
 # -------------------------------------------------------
 
-athletes = sorted(df["Name"].unique())
+section("Select Athletes")
 
-selected = st.multiselect(
-    "Select athletes to compare",
-    athletes,
-    default=athletes[:2] if len(athletes) >= 2 else athletes
+card_start()
+
+users = sorted(df["Name"].dropna().unique())
+
+selected_users = st.multiselect(
+    "Choose Athletes (2+ recommended)",
+    users,
+    default=users[:2]
 )
 
-# Handle empty selection
-if len(selected) == 0:
-    st.info("Select at least one athlete.")
+card_end()
+
+if len(selected_users) < 1:
+    st.warning("Select at least one athlete.")
     st.stop()
 
-# Filter selected athletes
-compare_df = df[df["Name"].isin(selected)]
-
 # -------------------------------------------------------
-# GET LATEST RECORD PER ATHLETE
+# GET LATEST RECORDS
 # -------------------------------------------------------
-# Important: Always compare latest available data
 
-latest = (
-    compare_df
+latest_df = (
+    df[df["Name"].isin(selected_users)]
     .sort_values("Date")
     .groupby("Name")
     .tail(1)
-    .set_index("Name")
 )
 
-# Remove Age from display table
-latest_display = latest.drop(columns=["Age"], errors="ignore")
-
 # -------------------------------------------------------
-# DISPLAY TABLE
+# DISPLAY TABLE (SIDE-BY-SIDE)
 # -------------------------------------------------------
 
-st.subheader("📊 Latest Metrics")
-st.dataframe(latest_display, use_container_width=True)
+section("Comparison Table")
+
+card_start()
+
+# Transpose for better comparison (same as original intent)
+comparison_df = latest_df.set_index("Name").T
+
+# Optional: remove less useful fields
+comparison_df = comparison_df.drop(
+    index=["Photo", "Date"],
+    errors="ignore"
+)
+
+st.dataframe(comparison_df, use_container_width=True)
+
+card_end()
 
 # -------------------------------------------------------
-# BAR CHART COMPARISON
+# VISUAL COMPARISON
 # -------------------------------------------------------
-# Simple comparison across key metrics
 
-st.subheader("📊 Metric Comparison")
+section("Visual Comparison")
 
-metrics = ["BMI", "BodyFat", "MuscleMass", "BodyWater", "VisceralFat"]
+card_start()
 
-# Handle missing columns safely
-available_metrics = [m for m in metrics if m in latest.columns]
+metrics = [
+    "Weight",
+    "BMI",
+    "BodyFat",
+    "MuscleMass",
+    "BodyWater",
+    "VisceralFat"
+]
 
-if available_metrics:
-    st.bar_chart(latest[available_metrics])
+available_metrics = [m for m in metrics if m in latest_df.columns]
+
+selected_metric = st.selectbox(
+    "Select Metric",
+    available_metrics
+)
+
+chart_df = latest_df.set_index("Name")[selected_metric]
+
+st.bar_chart(chart_df)
+
+card_end()
+
+# -------------------------------------------------------
+# INSIGHTS (NON-DESTRUCTIVE ADDITION)
+# -------------------------------------------------------
+
+section("Quick Insight")
+
+card_start()
+
+if len(selected_users) >= 2:
+
+    best_user = chart_df.idxmin() if selected_metric in ["BMI", "BodyFat", "VisceralFat"] else chart_df.idxmax()
+
+    st.write(f"Best performer for **{selected_metric}**: **{best_user}**")
+
 else:
-    st.warning("No comparable metrics available.")
+    st.info("Select multiple athletes for comparison insights")
 
-# -------------------------------------------------------
-# RADAR CHART (ADVANCED VISUAL)
-# -------------------------------------------------------
-
-st.subheader("🕸️ Body Composition Radar")
-
-fig = go.Figure()
-
-for athlete in latest.index:
-
-    values = []
-    labels = []
-
-    # Build dynamically to avoid missing column errors
-    for metric in metrics:
-        if metric in latest.columns:
-            values.append(latest.loc[athlete][metric])
-            labels.append(metric)
-
-    fig.add_trace(go.Scatterpolar(
-        r=values,
-        theta=labels,
-        fill="toself",
-        name=athlete
-    ))
-
-fig.update_layout(
-    polar=dict(radialaxis=dict(visible=True)),
-    showlegend=True
-)
-
-st.plotly_chart(fig, use_container_width=True)
+card_end()
