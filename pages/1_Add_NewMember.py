@@ -1,83 +1,77 @@
-import streamlit as st
-import pandas as pd
-import os
-
 from sidebar import render_sidebar
 from ui.theme import apply_theme
 from ui.components import page_header, section, card_start, card_end
 
-# -------------------------------------------------------
-# INIT
-# -------------------------------------------------------
+import streamlit as st
+import uuid, os
+from PIL import Image
+from datetime import datetime
+from storage import save_report
 
 render_sidebar()
 apply_theme()
 
-FILE_NAME = "fitcom_reports.csv"
+page_header("Add Member", "Capture body composition")
 
-page_header("Progress Tracking", "Track member progress over time")
+# --- Utils ---
+def calculate_bmi(w,h): return round(w/((h*0.0254)**2),2) if h else 0
 
-# -------------------------------------------------------
-# LOAD DATA
-# -------------------------------------------------------
+def save_image(f):
+    try:
+        img = Image.open(f).convert("RGB")
+        os.makedirs("profiles", exist_ok=True)
+        path = f"profiles/{uuid.uuid4()}.jpg"
+        img.save(path)
+        return path, img
+    except: return None, None
 
-if not os.path.exists(FILE_NAME):
-    st.info("No reports available.")
-    st.stop()
-
-df = pd.read_csv(FILE_NAME)
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-
-# -------------------------------------------------------
-# USER SELECTION (CARD)
-# -------------------------------------------------------
-
-section("Select Member")
-
+# --- Profile ---
+section("User Profile")
 card_start()
 
-users = sorted(df["Name"].unique())
-user = st.selectbox("Choose Member", users)
+col1,col2 = st.columns([1,2])
+with col1:
+    up = st.file_uploader("Photo")
+    photo=None
+    if up:
+        photo,img = save_image(up)
+        st.image(img,width=120)
+
+with col2:
+    name = st.text_input("Name")
+    gender = st.selectbox("Gender",["Male","Female"])
+    age = st.number_input("Age",10,100)
+    height = st.number_input("Height (inches)",48,90)
 
 card_end()
 
-# -------------------------------------------------------
-# FILTER DATA
-# -------------------------------------------------------
-
-user_df = df[df["Name"] == user].sort_values("Date")
-user_display = user_df.drop(columns=["Age"], errors="ignore")
-
-# -------------------------------------------------------
-# TABLE (CARD)
-# -------------------------------------------------------
-
-section("Progress History")
-
+# --- Body ---
+section("Body Composition")
 card_start()
-st.dataframe(user_display, use_container_width=True)
+
+col1,col2,col3 = st.columns(3)
+with col1:
+    weight = st.number_input("Weight",30.0,200.0)
+    bmi = calculate_bmi(weight,height)
+    st.metric("BMI",bmi)
+
+with col2:
+    bodyfat = st.number_input("Body Fat",1.0,60.0)
+
+with col3:
+    muscle = st.number_input("Muscle",10.0,100.0)
+
 card_end()
 
-# -------------------------------------------------------
-# CHART (CARD)
-# -------------------------------------------------------
-
-if len(user_df) > 1:
-
-    section("Progress Trend")
-
-    card_start()
-
-    metrics = ["Weight", "BodyFat", "MuscleMass"]
-    available = [m for m in metrics if m in user_df.columns]
-
-    if available:
-        chart_df = user_df.set_index("Date")[available]
-        st.line_chart(chart_df)
+# --- Save ---
+if st.button("Save Report",use_container_width=True):
+    if not name:
+        st.error("Name required")
     else:
-        st.warning("No chartable data")
-
-    card_end()
-
-else:
-    st.info("Add more entries to see trends")
+        save_report(name,{
+            "Name":name,"Gender":gender,"Age":age,
+            "Height":height,"Weight":weight,
+            "BMI":bmi,"BodyFat":bodyfat,"MuscleMass":muscle,
+            "Photo":photo,"Date":datetime.now().strftime("%Y-%m-%d")
+        })
+        st.success("Saved ✅")
