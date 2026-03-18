@@ -1,12 +1,15 @@
 # ============================================================
-# FitCom - Sidebar Navigation
+# FitCom - Sidebar Navigation (SyntraAI Styled)
 # Author: Anand Kumar
 #
-# Description:
-# Custom sidebar replacing Streamlit default navigation.
-# - Clean menu list (no buttons/radio)
-# - Logo aligned at top (no extra gap)
-# - White background for consistent UI
+# Purpose:
+# Provides a clean, consistent navigation experience across the app.
+#
+# Design Notes:
+# - Replaces default Streamlit navigation
+# - Uses dark theme for premium SaaS feel
+# - Keeps UI minimal, distraction-free
+# - Built to scale as more pages/features are added
 # ============================================================
 
 import streamlit as st
@@ -15,43 +18,65 @@ import streamlit as st
 def render_sidebar():
 
     # -------------------------------------------------------
-    # GLOBAL STYLING
+    # GLOBAL SIDEBAR STYLING
     # -------------------------------------------------------
-    # 1. Hide default Streamlit sidebar navigation
-    # 2. Remove top padding (fix logo spacing issue)
-    # 3. Ensure full white background
-    # 4. Make page links look like a clean menu
+    # Why this exists:
+    # - Streamlit default sidebar looks basic
+    # - We override it to match SyntraAI branding
+    # - Ensures consistent UX across all pages
     # -------------------------------------------------------
 
     st.markdown("""
     <style>
 
-    /* Hide Streamlit default page navigation */
+    /* Hide default Streamlit navigation */
     div[data-testid="stSidebarNav"] {
         display: none;
     }
 
-    /* Remove top padding (fixes extra gap above logo) */
+    /* Remove extra top padding (fix logo spacing issue) */
     section[data-testid="stSidebar"] > div {
         padding-top: 0rem;
     }
 
-    /* Force white background */
+    /* -------------------------------------------------- */
+    /* SIDEBAR BACKGROUND (SyntraAI dark theme) */
+    /* -------------------------------------------------- */
     section[data-testid="stSidebar"] {
-        background-color: white;
+        background: linear-gradient(180deg, #2F343A, #1F2428);
+        color: white;
     }
 
-    /* Make page links look like menu items */
+    /* -------------------------------------------------- */
+    /* MENU BUTTON STYLE */
+    /* -------------------------------------------------- */
     button[kind="secondary"] {
         width: 100%;
         text-align: left;
         border-radius: 8px;
-        padding: 8px 10px;
-        margin-bottom: 4px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
+        color: white;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
 
+    /* Hover effect (subtle premium feel) */
     button[kind="secondary"]:hover {
-        background-color: #f1f5f9;
+        background-color: rgba(255, 255, 255, 0.08);
+        transform: translateX(3px);
+    }
+
+    /* Active click feel */
+    button[kind="secondary"]:active {
+        transform: scale(0.98);
+    }
+
+    /* Divider styling */
+    hr {
+        border: 0;
+        height: 1px;
+        background: rgba(255,255,255,0.1);
     }
 
     </style>
@@ -60,9 +85,9 @@ def render_sidebar():
     # -------------------------------------------------------
     # LOGO SECTION
     # -------------------------------------------------------
-    # - Positioned at top
-    # - No shrink, keeps aspect ratio
-    # - Slight negative margin to remove gap
+    # - Anchored at top
+    # - Slight margin tweak removes unwanted spacing
+    # - Keeps branding visible across all pages
     # -------------------------------------------------------
 
     st.sidebar.markdown(
@@ -77,14 +102,17 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # MAIN MENU (CLEAN LIST STYLE)
+    # MAIN NAVIGATION MENU
     # -------------------------------------------------------
-    # Using page_link → behaves like real navigation menu
-    # No buttons, no radio → clean UX
+    # Why page_link:
+    # - Native Streamlit navigation
+    # - Cleaner than buttons or radio
+    # - Scales well with multiple pages
     # -------------------------------------------------------
+
     st.sidebar.page_link("Dashboard.py", label="🏠 Dashboard")
 
-    st.sidebar.page_link("pages/9_Member_Dashboard.py", label="👤 Individual Board")  # ✅ ADDED
+    st.sidebar.page_link("pages/9_Member_Dashboard.py", label="👤 Individual Board")
 
     st.sidebar.page_link("pages/2_Progress.py", label="📊 Progress")
 
@@ -105,7 +133,13 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # SUPPORT SECTION (MINIMAL)
+    # FOOTER / SUPPORT SECTION
+    # -------------------------------------------------------
+    # Keeps it minimal to avoid clutter
+    # Can later include:
+    # - Version info
+    # - Help links
+    # - Logout (if auth added)
     # -------------------------------------------------------
 
     st.sidebar.caption("📧 manandkumar@gmail.com")
