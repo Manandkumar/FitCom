@@ -1,96 +1,83 @@
-# ============================================================
-# FitCom - Progress Tracking
-# Author: Anand Kumar
-#
-# Notes:
-# - Shows historical progress for a selected user
-# - Includes table + trend chart
-# - Age is hidden from UI for privacy
-# ============================================================
-
 import streamlit as st
 import pandas as pd
 import os
 
-# -------------------------------------------------------
-# Load shared sidebar (consistent layout across app)
-# -------------------------------------------------------
-
 from sidebar import render_sidebar
-render_sidebar()
+from ui.theme import apply_theme
+from ui.components import page_header, section, card_start, card_end
 
 # -------------------------------------------------------
-# CONFIG
+# INIT
 # -------------------------------------------------------
+
+render_sidebar()
+apply_theme()
 
 FILE_NAME = "fitcom_reports.csv"
 
-st.title("📈 Progress Tracking")
+page_header("Progress Tracking", "Track member progress over time")
 
 # -------------------------------------------------------
 # LOAD DATA
 # -------------------------------------------------------
 
 if not os.path.exists(FILE_NAME):
-
     st.info("No reports available.")
     st.stop()
 
-# Load dataset
 df = pd.read_csv(FILE_NAME)
-
-# Convert Date column → datetime (important for sorting/charting)
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
 # -------------------------------------------------------
-# CLEAN DATA FOR UI
+# USER SELECTION (CARD)
 # -------------------------------------------------------
-# Remove sensitive fields (Age hidden)
 
-df_display = df.drop(columns=["Age"], errors="ignore")
+section("Select Member")
 
-# -------------------------------------------------------
-# USER SELECTION
-# -------------------------------------------------------
+card_start()
 
 users = sorted(df["Name"].unique())
+user = st.selectbox("Choose Member", users)
 
-user = st.selectbox("Select User", users)
+card_end()
 
-# Filter selected user's data
+# -------------------------------------------------------
+# FILTER DATA
+# -------------------------------------------------------
+
 user_df = df[df["Name"] == user].sort_values("Date")
-
 user_display = user_df.drop(columns=["Age"], errors="ignore")
 
 # -------------------------------------------------------
-# TABLE VIEW
+# TABLE (CARD)
 # -------------------------------------------------------
 
-st.subheader("📋 Progress History")
+section("Progress History")
 
+card_start()
 st.dataframe(user_display, use_container_width=True)
+card_end()
 
 # -------------------------------------------------------
-# TREND CHART
+# CHART (CARD)
 # -------------------------------------------------------
-# Only show if we have enough data points
 
 if len(user_df) > 1:
 
-    st.subheader("📈 Progress Trend")
+    section("Progress Trend")
 
-    # Select only available columns (safe)
+    card_start()
+
     metrics = ["Weight", "BodyFat", "MuscleMass"]
-    available_metrics = [m for m in metrics if m in user_df.columns]
+    available = [m for m in metrics if m in user_df.columns]
 
-    if available_metrics:
-
-        chart_df = user_df.set_index("Date")[available_metrics]
-
+    if available:
+        chart_df = user_df.set_index("Date")[available]
         st.line_chart(chart_df)
-
     else:
-        st.warning("No chartable metrics available.")
+        st.warning("No chartable data")
+
+    card_end()
 
 else:
-    st.info("Add more entries to see progress trends.")
+    st.info("Add more entries to see trends")
