@@ -2,10 +2,11 @@
 # FitCom - Member Dashboard
 # Author: Anand Kumar
 #
-# Notes:
-# - Handles login + member-specific dashboard
-# - Allows user to track progress over time
-# - Age is intentionally hidden from UI (privacy)
+# Description:
+# - Member login system
+# - Body composition tracking
+# - Progress visualization
+# - HIIT workout tracking (NEW 🔥)
 # ============================================================
 
 import streamlit as st
@@ -15,20 +16,43 @@ import os
 from datetime import datetime
 
 # -------------------------------------------------------
-# Load shared sidebar (keeps UI consistent across pages)
+# LOAD SIDEBAR
 # -------------------------------------------------------
 from sidebar import render_sidebar
 render_sidebar()
 
-# Fix path so we can import modules from root
+# Fix import path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from storage import load_reports, save_report, delete_record
 
 # -------------------------------------------------------
-# SESSION STATE (basic login persistence)
+# HIIT STORAGE UTILITIES
 # -------------------------------------------------------
-# Keeps user logged in across reruns
+
+HIIT_FILE = "hiit_data.csv"
+
+
+def save_hiit_session(data):
+    """Save HIIT session to CSV"""
+    df = pd.DataFrame([data])
+
+    if os.path.exists(HIIT_FILE):
+        df.to_csv(HIIT_FILE, mode='a', header=False, index=False)
+    else:
+        df.to_csv(HIIT_FILE, index=False)
+
+
+def load_hiit_sessions():
+    """Load HIIT sessions"""
+    if os.path.exists(HIIT_FILE):
+        return pd.read_csv(HIIT_FILE)
+    return pd.DataFrame()
+
+
+# -------------------------------------------------------
+# SESSION STATE
+# -------------------------------------------------------
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -42,10 +66,8 @@ if "user" not in st.session_state:
 
 st.title("👤 Member Dashboard")
 
-# Load all reports (grouped by member name)
 reports = load_reports()
 
-# Safety check – no data available
 if not reports:
     st.warning("⚠️ No members found. Please add a report first.")
     st.stop()
@@ -53,9 +75,6 @@ if not reports:
 # -------------------------------------------------------
 # LOGIN SECTION
 # -------------------------------------------------------
-# Very simple auth:
-# Username = Name
-# Password = Name (can be upgraded later)
 
 if not st.session_state.logged_in:
 
@@ -81,13 +100,12 @@ if not st.session_state.logged_in:
             st.error("❌ Incorrect password")
 
         else:
-            # Save login state
             st.session_state.logged_in = True
             st.session_state.user = selected_name
             st.rerun()
 
 # -------------------------------------------------------
-# MAIN DASHBOARD (AFTER LOGIN)
+# MAIN DASHBOARD
 # -------------------------------------------------------
 
 else:
@@ -96,7 +114,6 @@ else:
 
     st.success(f"Welcome {selected_name} 👋")
 
-    # Simple logout
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.user = None
@@ -113,20 +130,14 @@ else:
         st.info("No reports available")
         st.stop()
 
-    # -------------------------------------------------------
-    # Hide sensitive fields (Age not shown in UI)
-    # -------------------------------------------------------
     df_display = df.drop(columns=["Age"], errors="ignore")
-
-    # Latest record (used for current stats)
     latest = df.iloc[-1]
 
-    # Lock profile fields (should not change per entry)
     height = latest.get("Height", 0)
     gender = latest.get("Gender", "Male")
 
     # -------------------------------------------------------
-    # CURRENT STATS (quick snapshot)
+    # CURRENT STATS
     # -------------------------------------------------------
 
     st.subheader("📊 Latest Stats")
@@ -138,9 +149,8 @@ else:
     col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
 
     # -------------------------------------------------------
-    # ADD NEW PROGRESS ENTRY
+    # ADD PROGRESS
     # -------------------------------------------------------
-    # Only dynamic metrics are entered (profile stays locked)
 
     st.divider()
     st.subheader("➕ Add New Progress")
@@ -148,27 +158,22 @@ else:
     col1, col2 = st.columns(2)
 
     with col1:
-        weight = st.number_input("Weight (kg)", 30.0, 200.0, key="weight")
-        bodyfat = st.number_input("Body Fat %", 1.0, 60.0, key="bodyfat")
-        muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0, key="muscle")
+        weight = st.number_input("Weight (kg)", 30.0, 200.0)
+        bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
+        muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0)
 
     with col2:
-        body_water = st.number_input("Body Water %", 1.0, 80.0, key="water")
-        visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0, key="visceral")
-        subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0, key="subfat")
+        body_water = st.number_input("Body Water %", 1.0, 80.0)
+        visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
+        subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0)
 
-    # Save new progress entry
     if st.button("Save Progress"):
 
         new_record = {
             "Name": selected_name,
             "Date": datetime.now().strftime("%Y-%m-%d"),
-
-            # Locked fields (carried forward)
             "Height": height,
             "Gender": gender,
-
-            # Dynamic tracking fields
             "Weight": weight,
             "BodyFat": bodyfat,
             "MuscleMass": muscle_mass,
@@ -185,7 +190,6 @@ else:
     # -------------------------------------------------------
     # PROGRESS CHARTS
     # -------------------------------------------------------
-    # Simple trend tracking
 
     st.subheader("📈 Progress")
 
@@ -199,7 +203,83 @@ else:
         st.line_chart(df["MuscleMass"])
 
     # -------------------------------------------------------
-    # WEEKLY INSIGHTS (basic logic for now)
+    # 🔥 HIIT TRACKER (NEW FEATURE)
+    # -------------------------------------------------------
+
+    st.divider()
+    st.subheader("🔥 HIIT Workout Tracker")
+
+    with st.form("hiit_form"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            workout_type = st.selectbox(
+                "Workout Type",
+                ["Running", "Cycling", "Skipping", "Circuit", "Other"]
+            )
+
+            duration = st.number_input("Duration (minutes)", 1, 180)
+
+        with col2:
+            calories = st.number_input("Calories Burned", 0)
+            heart_rate = st.number_input("Avg Heart Rate", 0)
+
+        notes = st.text_area("Notes")
+
+        submitted = st.form_submit_button("Save HIIT Session")
+
+        if submitted:
+
+            hiit_record = {
+                "Name": selected_name,
+                "Date": datetime.now().strftime("%Y-%m-%d"),
+                "Workout": workout_type,
+                "Duration": duration,
+                "Calories": calories,
+                "HeartRate": heart_rate,
+                "Notes": notes
+            }
+
+            save_hiit_session(hiit_record)
+
+            st.success("🔥 HIIT session saved!")
+            st.rerun()
+
+    # -------------------------------------------------------
+    # HIIT HISTORY
+    # -------------------------------------------------------
+
+    st.subheader("📊 HIIT History")
+
+    hiit_df = load_hiit_sessions()
+
+    if not hiit_df.empty:
+
+        user_hiit = hiit_df[hiit_df["Name"] == selected_name]
+
+        if not user_hiit.empty:
+            st.dataframe(user_hiit.sort_index(ascending=False), use_container_width=True)
+        else:
+            st.info("No HIIT sessions yet")
+
+    else:
+        st.info("No HIIT data available")
+
+    # -------------------------------------------------------
+    # HIIT CALORIE TREND
+    # -------------------------------------------------------
+
+    if not hiit_df.empty:
+
+        user_hiit = hiit_df[hiit_df["Name"] == selected_name]
+
+        if not user_hiit.empty:
+            st.subheader("📈 HIIT Calories Trend")
+            st.line_chart(user_hiit["Calories"])
+
+    # -------------------------------------------------------
+    # WEEKLY INSIGHTS
     # -------------------------------------------------------
 
     st.subheader("🧠 Weekly Insights")
@@ -207,7 +287,6 @@ else:
     if len(df) > 1:
 
         recent = df.tail(7)
-
         weight_change = recent["Weight"].iloc[-1] - recent["Weight"].iloc[0]
 
         if weight_change < -1:
@@ -218,7 +297,7 @@ else:
             st.info("👍 Weight stable")
 
     # -------------------------------------------------------
-    # FULL DATA TABLE (Age hidden)
+    # FULL DATA
     # -------------------------------------------------------
 
     st.subheader("📋 Full Report")
@@ -227,7 +306,6 @@ else:
     # -------------------------------------------------------
     # DELETE RECORD
     # -------------------------------------------------------
-    # Allows removing incorrect entries
 
     st.subheader("🗑️ Delete Record")
 
