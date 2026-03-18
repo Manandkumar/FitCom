@@ -1,142 +1,144 @@
 # ============================================================
-# FitCom - Athlete Comparison (Final Refactored Version)
+# FitCom - Athlete Comparison
 # Author: Anand Kumar
 #
-# Purpose:
-# Compare multiple athletes side-by-side using latest data
+# Notes:
+# - Compare latest metrics across multiple athletes
+# - Includes bar + radar visualization
+# - Age is hidden from UI (privacy)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import os
+import plotly.graph_objects as go
+
+# -------------------------------------------------------
+# Load shared sidebar (consistent UI across app)
+# -------------------------------------------------------
 
 from sidebar import render_sidebar
-from ui.theme import apply_theme
-from ui.components import page_header, section, card_start, card_end
-
-# -------------------------------------------------------
-# INIT
-# -------------------------------------------------------
-
 render_sidebar()
-apply_theme()
+
+# -------------------------------------------------------
+# CONFIG
+# -------------------------------------------------------
 
 FILE_NAME = "fitcom_reports.csv"
 
-page_header("Athlete Comparison", "Compare fitness metrics side-by-side")
+st.title("🏅 Athlete Comparison")
 
 # -------------------------------------------------------
 # LOAD DATA
 # -------------------------------------------------------
 
 if not os.path.exists(FILE_NAME):
+
     st.info("No reports available yet.")
     st.stop()
 
+# Load dataset
 df = pd.read_csv(FILE_NAME)
 
-# Ensure date format
+# Ensure Date column is proper datetime
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
 # -------------------------------------------------------
-# SELECT ATHLETES
+# CLEAN DATA FOR UI
+# -------------------------------------------------------
+# Remove sensitive fields (Age not shown)
+
+df_display = df.drop(columns=["Age"], errors="ignore")
+
+# -------------------------------------------------------
+# USER SELECTION
 # -------------------------------------------------------
 
-section("Select Athletes")
+athletes = sorted(df["Name"].unique())
 
-card_start()
-
-users = sorted(df["Name"].dropna().unique())
-
-selected_users = st.multiselect(
-    "Choose Athletes (2+ recommended)",
-    users,
-    default=users[:2]
+selected = st.multiselect(
+    "Select athletes to compare",
+    athletes,
+    default=athletes[:2] if len(athletes) >= 2 else athletes
 )
 
-card_end()
-
-if len(selected_users) < 1:
-    st.warning("Select at least one athlete.")
+# Handle empty selection
+if len(selected) == 0:
+    st.info("Select at least one athlete.")
     st.stop()
 
-# -------------------------------------------------------
-# GET LATEST RECORDS
-# -------------------------------------------------------
+# Filter selected athletes
+compare_df = df[df["Name"].isin(selected)]
 
-latest_df = (
-    df[df["Name"].isin(selected_users)]
+# -------------------------------------------------------
+# GET LATEST RECORD PER ATHLETE
+# -------------------------------------------------------
+# Important: Always compare latest available data
+
+latest = (
+    compare_df
     .sort_values("Date")
     .groupby("Name")
     .tail(1)
+    .set_index("Name")
 )
 
-# -------------------------------------------------------
-# DISPLAY TABLE (SIDE-BY-SIDE)
-# -------------------------------------------------------
-
-section("Comparison Table")
-
-card_start()
-
-# Transpose for better comparison (same as original intent)
-comparison_df = latest_df.set_index("Name").T
-
-# Optional: remove less useful fields
-comparison_df = comparison_df.drop(
-    index=["Photo", "Date"],
-    errors="ignore"
-)
-
-st.dataframe(comparison_df, use_container_width=True)
-
-card_end()
+# Remove Age from display table
+latest_display = latest.drop(columns=["Age"], errors="ignore")
 
 # -------------------------------------------------------
-# VISUAL COMPARISON
+# DISPLAY TABLE
 # -------------------------------------------------------
 
-section("Visual Comparison")
-
-card_start()
-
-metrics = [
-    "Weight",
-    "BMI",
-    "BodyFat",
-    "MuscleMass",
-    "BodyWater",
-    "VisceralFat"
-]
-
-available_metrics = [m for m in metrics if m in latest_df.columns]
-
-selected_metric = st.selectbox(
-    "Select Metric",
-    available_metrics
-)
-
-chart_df = latest_df.set_index("Name")[selected_metric]
-
-st.bar_chart(chart_df)
-
-card_end()
+st.subheader("📊 Latest Metrics")
+st.dataframe(latest_display, use_container_width=True)
 
 # -------------------------------------------------------
-# INSIGHTS (NON-DESTRUCTIVE ADDITION)
+# BAR CHART COMPARISON
 # -------------------------------------------------------
+# Simple comparison across key metrics
 
-section("Quick Insight")
+st.subheader("📊 Metric Comparison")
 
-card_start()
+metrics = ["BMI", "BodyFat", "MuscleMass", "BodyWater", "VisceralFat"]
 
-if len(selected_users) >= 2:
+# Handle missing columns safely
+available_metrics = [m for m in metrics if m in latest.columns]
 
-    best_user = chart_df.idxmin() if selected_metric in ["BMI", "BodyFat", "VisceralFat"] else chart_df.idxmax()
-
-    st.write(f"Best performer for **{selected_metric}**: **{best_user}**")
-
+if available_metrics:
+    st.bar_chart(latest[available_metrics])
 else:
-    st.info("Select multiple athletes for comparison insights")
+    st.warning("No comparable metrics available.")
 
-card_end()
+# -------------------------------------------------------
+# RADAR CHART (ADVANCED VISUAL)
+# -------------------------------------------------------
+
+st.subheader("🕸️ Body Composition Radar")
+
+fig = go.Figure()
+
+for athlete in latest.index:
+
+    values = []
+    labels = []
+
+    # Build dynamically to avoid missing column errors
+    for metric in metrics:
+        if metric in latest.columns:
+            values.append(latest.loc[athlete][metric])
+            labels.append(metric)
+
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=labels,
+        fill="toself",
+        name=athlete
+    ))
+
+fig.update_layout(
+    polar=dict(radialaxis=dict(visible=True)),
+    showlegend=True
+)
+
+st.plotly_chart(fig, use_container_width=True)
