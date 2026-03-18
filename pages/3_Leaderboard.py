@@ -1,296 +1,130 @@
+# ============================================================
+# FitCom - Leaderboard (Using UI Layer)
+# ============================================================
+
 import streamlit as st
 import pandas as pd
 import os
 import base64
+
 from sidebar import render_sidebar
+from ui.theme import apply_theme
+from ui.components import page_header, section, card
+
+# -------------------------------------------------------
+# INIT
+# -------------------------------------------------------
 
 render_sidebar()
+apply_theme()
 
 FILE_NAME = "fitcom_reports.csv"
 
-# ------------------------------------------------------------
-# Styling
-# ------------------------------------------------------------
+page_header("Leaderboard", "Top performers based on fitness score")
 
-st.markdown("""
-<style>
-
-table {
-    font-size:16px !important;
-}
-
-thead th {
-    text-align:center !important;
-    font-size:18px !important;
-}
-
-tbody td {
-    text-align:center !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-st.title("🏆 FitCom Leaderboard")
-
-# ------------------------------------------------------------
-# Image Encoder
-# ------------------------------------------------------------
+# -------------------------------------------------------
+# UTILITIES
+# -------------------------------------------------------
 
 def get_image_base64(path):
-
     try:
         with open(path, "rb") as img:
             encoded = base64.b64encode(img.read()).decode()
-        return f"<img src='data:image/png;base64,{encoded}' width='80'>"
+        return f"<img src='data:image/png;base64,{encoded}' width='60'>"
     except:
         return "—"
 
-# ------------------------------------------------------------
-# Fitness Score Function
-# ------------------------------------------------------------
 
 def calculate_fitness_score(row):
-
     score = 100
 
-    if row["BMI"] > 25:
+    if row.get("BMI", 0) > 25:
         score -= (row["BMI"] - 25) * 2
 
-    if row["BodyFat"] > 20:
+    if row.get("BodyFat", 0) > 20:
         score -= (row["BodyFat"] - 20) * 1.5
 
-    if row["VisceralFat"] > 10:
+    if row.get("VisceralFat", 0) > 10:
         score -= (row["VisceralFat"] - 10) * 2
 
-    if row["BodyWater"] < 50:
+    if row.get("BodyWater", 50) < 50:
         score -= (50 - row["BodyWater"]) * 1.5
 
     return max(0, round(score))
 
 
-# ------------------------------------------------------------
-# Health Indicators
-# ------------------------------------------------------------
-
-def bmi_indicator(bmi):
-
-    if bmi < 18.5:
-        return "🟡"
-
-    elif bmi <= 24.9:
+def indicator(value, good, mid):
+    if value <= good:
         return "🟢"
-
-    elif bmi <= 29.9:
+    elif value <= mid:
         return "🟡"
+    return "🔴"
 
-    else:
-        return "🔴"
-
-
-def bodyfat_indicator(bodyfat):
-
-    if bodyfat <= 15:
-        return "🟢"
-
-    elif bodyfat <= 20:
-        return "🟢"
-
-    elif bodyfat <= 25:
-        return "🟡"
-
-    else:
-        return "🔴"
-
-
-def visceral_indicator(visceral):
-
-    if visceral <= 9:
-        return "🟢"
-
-    elif visceral <= 14:
-        return "🟡"
-
-    else:
-        return "🔴"
-
-
-# ------------------------------------------------------------
-# Load Data
-# ------------------------------------------------------------
+# -------------------------------------------------------
+# LOAD DATA
+# -------------------------------------------------------
 
 if os.path.exists(FILE_NAME):
 
     df = pd.read_csv(FILE_NAME)
 
-    # ------------------------------------------------------------
-    # Latest record per athlete
-    # ------------------------------------------------------------
-
-    latest_df = (
-        df.sort_values("Date")
-        .groupby("Name")
-        .tail(1)
-    )
+    # Always use latest record per user
+    latest_df = df.sort_values("Date").groupby("Name").tail(1)
 
     latest_df["FitnessScore"] = latest_df.apply(calculate_fitness_score, axis=1)
 
     leaderboard = latest_df.sort_values("FitnessScore", ascending=False)
 
-    athletes = leaderboard["Name"].tolist()
+    # -------------------------------------------------------
+    # TOP 3 (CARD)
+    # -------------------------------------------------------
+
+    top3 = leaderboard.head(3)
+
+    cols = st.columns(3)
+    medals = ["🥇", "🥈", "🥉"]
+
+    for i, (_, row) in enumerate(top3.iterrows()):
+        with cols[i]:
+            st.metric(
+                f"{medals[i]} {row['Name']}",
+                f"{row['FitnessScore']}/100"
+            )
+
+    # -------------------------------------------------------
+    # FULL TABLE (CARD)
+    # -------------------------------------------------------
+
+    section("Full Leaderboard")
 
     rows = []
 
-    # ------------------------------------------------------------
-    # PHOTO ROW
-    # ------------------------------------------------------------
+    for i, (_, row) in enumerate(leaderboard.iterrows()):
 
-    photo_row = {"Metric": "Photo"}
+        rank = ["🥇","🥈","🥉"][i] if i < 3 else str(i+1)
 
-    for _, row in leaderboard.iterrows():
-
-        photo_path = row.get("Photo", "")
-
-        if pd.notna(photo_path) and os.path.exists(photo_path):
-            photo_html = get_image_base64(photo_path)
+        photo = row.get("Photo", "")
+        if pd.notna(photo) and os.path.exists(photo):
+            photo_html = get_image_base64(photo)
         else:
             photo_html = "—"
 
-        photo_row[row["Name"]] = photo_html
-
-    rows.append(photo_row)
-
-    # ------------------------------------------------------------
-    # RANK ROW
-    # ------------------------------------------------------------
-
-    rank_row = {"Metric": "Rank"}
-
-    for i, (_, row) in enumerate(leaderboard.iterrows()):
-
-        if i == 0:
-            medal = "🥇"
-        elif i == 1:
-            medal = "🥈"
-        elif i == 2:
-            medal = "🥉"
-        else:
-            medal = str(i+1)
-
-        rank_row[row["Name"]] = medal
-
-    rows.append(rank_row)
-
-    # ------------------------------------------------------------
-    # FITNESS SCORE
-    # ------------------------------------------------------------
-
-    score_row = {"Metric": "Fitness Score"}
-
-    for _, row in leaderboard.iterrows():
-        score_row[row["Name"]] = row["FitnessScore"]
-
-    rows.append(score_row)
-
-    # ------------------------------------------------------------
-    # WEIGHT
-    # ------------------------------------------------------------
-
-    weight_row = {"Metric": "Weight"}
-
-    for _, row in leaderboard.iterrows():
-        weight_row[row["Name"]] = row.get("Weight","NA")
-
-    rows.append(weight_row)
-
-    # ------------------------------------------------------------
-    # BMI
-    # ------------------------------------------------------------
-
-    bmi_row = {"Metric": "BMI"}
-
-    for _, row in leaderboard.iterrows():
-
-        bmi = row.get("BMI","NA")
-
-        bmi_row[row["Name"]] = f"{bmi} {bmi_indicator(bmi)}"
-
-    rows.append(bmi_row)
-
-    # ------------------------------------------------------------
-    # BODY FAT
-    # ------------------------------------------------------------
-
-    fat_row = {"Metric": "Body Fat"}
-
-    for _, row in leaderboard.iterrows():
-
-        bf = row.get("BodyFat","NA")
-
-        fat_row[row["Name"]] = f"{bf} {bodyfat_indicator(bf)}"
-
-    rows.append(fat_row)
-
-    # ------------------------------------------------------------
-    # MUSCLE MASS
-    # ------------------------------------------------------------
-
-    muscle_row = {"Metric": "Muscle Mass"}
-
-    for _, row in leaderboard.iterrows():
-        muscle_row[row["Name"]] = row.get("MuscleMass","NA")
-
-    rows.append(muscle_row)
-
-    # ------------------------------------------------------------
-    # BODY WATER
-    # ------------------------------------------------------------
-
-    water_row = {"Metric": "Body Water"}
-
-    for _, row in leaderboard.iterrows():
-        water_row[row["Name"]] = row.get("BodyWater","NA")
-
-    rows.append(water_row)
-
-    # ------------------------------------------------------------
-    # VISCERAL FAT
-    # ------------------------------------------------------------
-
-    vis_row = {"Metric": "Visceral Fat"}
-
-    for _, row in leaderboard.iterrows():
-
-        vf = row.get("VisceralFat","NA")
-
-        vis_row[row["Name"]] = f"{vf} {visceral_indicator(vf)}"
-
-    rows.append(vis_row)
-
-    # ------------------------------------------------------------
-    # BMR
-    # ------------------------------------------------------------
-
-    bmr_row = {"Metric": "BMR"}
-
-    for _, row in leaderboard.iterrows():
-        bmr_row[row["Name"]] = row.get("BMR","NA")
-
-    rows.append(bmr_row)
-
-    # ------------------------------------------------------------
-    # Build Table
-    # ------------------------------------------------------------
+        rows.append({
+            "Rank": rank,
+            "Photo": photo_html,
+            "Name": row["Name"],
+            "Score": row["FitnessScore"],
+            "BMI": f"{row.get('BMI','-')} {indicator(row.get('BMI',0),24.9,29.9)}",
+            "Body Fat": f"{row.get('BodyFat','-')} {indicator(row.get('BodyFat',0),20,25)}",
+            "Muscle": row.get("MuscleMass","-"),
+            "Water": row.get("BodyWater","-"),
+            "Visceral": f"{row.get('VisceralFat','-')} {indicator(row.get('VisceralFat',0),10,15)}"
+        })
 
     table_df = pd.DataFrame(rows)
 
-    st.subheader("🏅 Fitness Comparison")
-
-    st.write(
-        table_df.to_html(escape=False, index=False),
-        unsafe_allow_html=True
-    )
+    # Wrap table inside card
+    card(table_df.to_html(escape=False, index=False))
 
 else:
-
     st.info("No reports available yet.")
