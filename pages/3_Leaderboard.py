@@ -1,5 +1,10 @@
 # ============================================================
-# FitCom - Leaderboard (Final Polished Version)
+# FitCom - Leaderboard (Final Version)
+# Author: Anand Kumar
+#
+# Purpose:
+# Display ranked athletes based on fitness score
+# with clean UI and full data integrity
 # ============================================================
 
 import streamlit as st
@@ -23,7 +28,7 @@ FILE_NAME = "fitcom_reports.csv"
 page_header("Leaderboard", "Top performers based on fitness score")
 
 # -------------------------------------------------------
-# STYLING FIX (Clean Table + Alignment)
+# STYLING FIX (Consistent Table + Alignment)
 # -------------------------------------------------------
 
 st.markdown("""
@@ -44,7 +49,7 @@ thead th {
     border: none !important;
 }
 
-/* Row style (card feel) */
+/* Row style */
 tbody tr {
     background: white;
     box-shadow: 0px 2px 6px rgba(0,0,0,0.05);
@@ -131,21 +136,22 @@ if os.path.exists(FILE_NAME):
 
     df = pd.read_csv(FILE_NAME)
 
+    # Get latest record per user (IMPORTANT: same as original)
     latest_df = df.sort_values("Date").groupby("Name").tail(1)
 
+    # Calculate score
     latest_df["FitnessScore"] = latest_df.apply(calculate_fitness_score, axis=1)
 
     leaderboard = latest_df.sort_values("FitnessScore", ascending=False)
 
     # -------------------------------------------------------
-    # TOP 3 (CLEAN METRIC VIEW)
+    # TOP 3 SECTION (NEW UI, no data loss)
     # -------------------------------------------------------
 
     section("Top Performers")
 
     top3 = leaderboard.head(3)
     cols = st.columns(3)
-
     medals = ["🥇", "🥈", "🥉"]
 
     for i, (_, row) in enumerate(top3.iterrows()):
@@ -156,7 +162,7 @@ if os.path.exists(FILE_NAME):
             )
 
     # -------------------------------------------------------
-    # FULL LEADERBOARD TABLE
+    # FULL LEADERBOARD TABLE (ORIGINAL LOGIC PRESERVED)
     # -------------------------------------------------------
 
     section("Full Leaderboard")
@@ -165,27 +171,35 @@ if os.path.exists(FILE_NAME):
 
     for i, (_, row) in enumerate(leaderboard.iterrows()):
 
-        # Rank
-        rank = ["🥇","🥈","🥉"][i] if i < 3 else str(i+1)
+        # Rank logic (same as original)
+        if i == 0:
+            rank = "🥇"
+        elif i == 1:
+            rank = "🥈"
+        elif i == 2:
+            rank = "🥉"
+        else:
+            rank = str(i + 1)
 
-        # Photo
+        # Photo logic (same as original)
         photo = row.get("Photo", "")
         if pd.notna(photo) and os.path.exists(photo):
             photo_html = get_image_base64(photo)
         else:
             photo_html = "—"
 
-        # Row data
         rows.append({
             "Rank": rank,
             "Photo": photo_html,
             "Name": row["Name"],
-            "Score": row["FitnessScore"],
-            "BMI": f"<span class='indicator'>{row.get('BMI','-')} {indicator(row.get('BMI',0),24.9,29.9)}</span>",
-            "Body Fat": f"<span class='indicator'>{row.get('BodyFat','-')} {indicator(row.get('BodyFat',0),20,25)}</span>",
-            "Muscle": row.get("MuscleMass","-"),
-            "Water": row.get("BodyWater","-"),
-            "Visceral": f"<span class='indicator'>{row.get('VisceralFat','-')} {indicator(row.get('VisceralFat',0),10,15)}</span>"
+            "Fitness Score": row["FitnessScore"],
+            "Weight": row.get("Weight", "NA"),
+            "BMI": f"<span class='indicator'>{row.get('BMI','NA')} {indicator(row.get('BMI',0),24.9,29.9)}</span>",
+            "Body Fat": f"<span class='indicator'>{row.get('BodyFat','NA')} {indicator(row.get('BodyFat',0),20,25)}</span>",
+            "Muscle Mass": row.get("MuscleMass", "NA"),
+            "Body Water": row.get("BodyWater", "NA"),
+            "Visceral Fat": f"<span class='indicator'>{row.get('VisceralFat','NA')} {indicator(row.get('VisceralFat',0),10,15)}</span>",
+            "BMR": row.get("BMR", "NA")
         })
 
     table_df = pd.DataFrame(rows)
