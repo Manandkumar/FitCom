@@ -6,10 +6,9 @@
 # Provides a clean, consistent navigation experience across the app.
 #
 # Design Notes:
-# - Replaces default Streamlit navigation
-# - Uses dark theme for premium SaaS feel
-# - Keeps UI minimal, distraction-free
-# - Built to scale as more pages/features are added
+# - Dark theme aligned with SyntraAI branding
+# - Fixes Streamlit default low-contrast behavior
+# - Ensures readability + premium UI feel
 # ============================================================
 
 import streamlit as st
@@ -20,10 +19,9 @@ def render_sidebar():
     # -------------------------------------------------------
     # GLOBAL SIDEBAR STYLING
     # -------------------------------------------------------
-    # Why this exists:
-    # - Streamlit default sidebar looks basic
-    # - We override it to match SyntraAI branding
-    # - Ensures consistent UX across all pages
+    # Key Fix:
+    # Streamlit applies low-opacity text colors by default.
+    # We override EVERYTHING inside sidebar for proper contrast.
     # -------------------------------------------------------
 
     st.markdown("""
@@ -34,17 +32,23 @@ def render_sidebar():
         display: none;
     }
 
-    /* Remove extra top padding (fix logo spacing issue) */
+    /* Remove top padding (fix logo gap) */
     section[data-testid="stSidebar"] > div {
         padding-top: 0rem;
     }
 
     /* -------------------------------------------------- */
-    /* SIDEBAR BACKGROUND (SyntraAI dark theme) */
+    /* SIDEBAR BACKGROUND */
     /* -------------------------------------------------- */
     section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, #2F343A, #1F2428);
-        color: white;
+    }
+
+    /* -------------------------------------------------- */
+    /* FORCE TEXT VISIBILITY (CRITICAL FIX) */
+    /* -------------------------------------------------- */
+    section[data-testid="stSidebar"] * {
+        color: #EAECEF !important;
     }
 
     /* -------------------------------------------------- */
@@ -53,26 +57,32 @@ def render_sidebar():
     button[kind="secondary"] {
         width: 100%;
         text-align: left;
-        border-radius: 8px;
+        border-radius: 10px;
         padding: 10px 12px;
         margin-bottom: 6px;
-        color: white;
+        background: transparent;
         font-weight: 500;
         transition: all 0.2s ease;
     }
 
-    /* Hover effect (subtle premium feel) */
+    /* Hover effect */
     button[kind="secondary"]:hover {
         background-color: rgba(255, 255, 255, 0.08);
         transform: translateX(3px);
     }
 
-    /* Active click feel */
+    /* Active page highlight */
+    button[kind="secondary"][aria-current="page"] {
+        background: rgba(255, 255, 255, 0.12);
+        font-weight: 600;
+    }
+
+    /* Click feedback */
     button[kind="secondary"]:active {
         transform: scale(0.98);
     }
 
-    /* Divider styling */
+    /* Divider */
     hr {
         border: 0;
         height: 1px;
@@ -85,9 +95,7 @@ def render_sidebar():
     # -------------------------------------------------------
     # LOGO SECTION
     # -------------------------------------------------------
-    # - Anchored at top
-    # - Slight margin tweak removes unwanted spacing
-    # - Keeps branding visible across all pages
+    # Wrapped in soft card to avoid harsh white box look
     # -------------------------------------------------------
 
     st.sidebar.markdown(
@@ -95,19 +103,23 @@ def render_sidebar():
         unsafe_allow_html=True
     )
 
+    st.sidebar.markdown("""
+    <div style="
+        background: rgba(255,255,255,0.05);
+        padding:10px;
+        border-radius:12px;
+        margin-bottom:10px;
+    ">
+    """, unsafe_allow_html=True)
+
     st.sidebar.image("logo.png", use_column_width=True)
 
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+    st.sidebar.markdown("</div></div>", unsafe_allow_html=True)
 
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # MAIN NAVIGATION MENU
-    # -------------------------------------------------------
-    # Why page_link:
-    # - Native Streamlit navigation
-    # - Cleaner than buttons or radio
-    # - Scales well with multiple pages
+    # MAIN NAVIGATION
     # -------------------------------------------------------
 
     st.sidebar.page_link("Dashboard.py", label="🏠 Dashboard")
@@ -133,13 +145,7 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # FOOTER / SUPPORT SECTION
-    # -------------------------------------------------------
-    # Keeps it minimal to avoid clutter
-    # Can later include:
-    # - Version info
-    # - Help links
-    # - Logout (if auth added)
+    # FOOTER
     # -------------------------------------------------------
 
     st.sidebar.caption("📧 manandkumar@gmail.com")
