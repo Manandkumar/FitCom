@@ -1,16 +1,6 @@
 # ============================================================
-# FitCom - Sidebar Navigation (SyntraAI Clean Theme)
+# FitCom - Sidebar Navigation (Final Polished Version)
 # Author: Anand Kumar
-#
-# Purpose:
-# Provides a clean, minimal, and consistent navigation panel
-# across all pages of the FitCom application.
-#
-# Design Philosophy:
-# - Light UI for better readability (business app feel)
-# - Teal accents aligned with SyntraAI branding
-# - Subtle interactions (hover, active states)
-# - Keep it simple and distraction-free
 # ============================================================
 
 import streamlit as st
@@ -19,106 +9,98 @@ import streamlit as st
 def render_sidebar():
 
     # -------------------------------------------------------
-    # GLOBAL SIDEBAR STYLING
-    # -------------------------------------------------------
-    # Why this block exists:
-    # - Streamlit's default sidebar looks very plain
-    # - We override styles to match a modern SaaS look
-    # - Also fixes spacing and improves readability
+    # GLOBAL STYLING
     # -------------------------------------------------------
 
     st.markdown("""
     <style>
 
-    /* Hide default Streamlit page navigation */
+    /* Hide default navigation */
     div[data-testid="stSidebarNav"] {
         display: none;
     }
 
-    /* Sidebar background + subtle border */
+    /* Sidebar base */
     section[data-testid="stSidebar"] {
-        background-color: #F4F6F8;
-        border-right: 1px solid #e0e0e0;
+        background-color: #F7F9FB;
+        border-right: 1px solid #E6EAF0;
     }
 
-    /* Remove extra padding at top (fix logo spacing) */
+    /* Remove top padding */
     section[data-testid="stSidebar"] > div {
         padding-top: 0rem;
     }
 
-    /* -------------------------------------------------- */
-    /* TEXT STYLING */
-    /* -------------------------------------------------- */
-    /* Force consistent readable text across sidebar */
+    /* Text */
     section[data-testid="stSidebar"] * {
         color: #2C2C2C !important;
         font-size: 14px;
     }
 
     /* -------------------------------------------------- */
-    /* NAVIGATION LINKS (page_link renders <a>) */
+    /* LOGO */
+    /* -------------------------------------------------- */
+    .logo-box {
+        padding: 12px 10px;
+        border-bottom: 1px solid #E6EAF0;
+        margin-bottom: 8px;
+    }
+
+    /* -------------------------------------------------- */
+    /* NAV LINKS */
     /* -------------------------------------------------- */
     section[data-testid="stSidebar"] a {
         display: block;
         padding: 10px 12px;
-        margin-bottom: 6px;
-        border-radius: 10px;
+        margin: 4px 0;
+        border-radius: 8px;
         text-decoration: none;
         font-weight: 500;
-        transition: all 0.2s ease;
+        transition: all 0.15s ease;
     }
 
-    /* Hover interaction */
+    /* Hover */
     section[data-testid="stSidebar"] a:hover {
-        background: rgba(31,167,161,0.1);
+        background: rgba(31,167,161,0.08);
         color: #1FA7A1 !important;
-        transform: translateX(3px);
     }
 
-    /* Active page highlight */
+    /* Active (STRONG FIX) */
     section[data-testid="stSidebar"] a[aria-current="page"] {
-        background: rgba(31,167,161,0.15);
-        color: #1FA7A1 !important;
+        background: #1FA7A1 !important;
+        color: white !important;
         font-weight: 600;
+        box-shadow: 0 2px 6px rgba(31,167,161,0.25);
     }
 
-    /* Divider styling */
+    /* Divider */
     hr {
         border: none;
         height: 1px;
-        background: #e0e0e0;
+        background: #E6EAF0;
+        margin: 10px 0;
+    }
+
+    /* Footer */
+    .footer {
+        font-size: 12px;
+        color: #888;
+        margin-top: 10px;
     }
 
     </style>
     """, unsafe_allow_html=True)
 
     # -------------------------------------------------------
-    # LOGO SECTION
-    # -------------------------------------------------------
-    # Notes:
-    # - Keep it simple (no background box → cleaner look)
-    # - Slight padding so it doesn't feel cramped
-    # - Works best with transparent PNG logo
+    # LOGO
     # -------------------------------------------------------
 
-    st.sidebar.markdown(
-        "<div style='padding:10px 5px 10px 5px;'>",
-        unsafe_allow_html=True
-    )
-
+    st.sidebar.markdown("<div class='logo-box'>", unsafe_allow_html=True)
     st.sidebar.image("logo.png", use_column_width=True)
-
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
-    st.sidebar.markdown("---")
-
     # -------------------------------------------------------
-    # MAIN NAVIGATION MENU
-    # -------------------------------------------------------
-    # Using page_link instead of buttons:
-    # - Native Streamlit navigation
-    # - Cleaner UX
-    # - Automatically handles routing between pages
+    # MAIN NAVIGATION
     # -------------------------------------------------------
 
     st.sidebar.page_link("Dashboard.py", label="🏠 Dashboard")
@@ -135,7 +117,7 @@ def render_sidebar():
 
     st.sidebar.page_link(
         "pages/1_Add_NewMember.py",
-        label="➕ Add New Member"
+        label="➕ Add Member"
     )
 
     st.sidebar.page_link(
@@ -171,11 +153,10 @@ def render_sidebar():
     st.sidebar.markdown("---")
 
     # -------------------------------------------------------
-    # FOOTER SECTION
-    # -------------------------------------------------------
-    # Minimal for now:
-    # - Can later include version info, logout, help links
-    # - Keeping it clean avoids clutter
+    # FOOTER
     # -------------------------------------------------------
 
-    st.sidebar.caption("📧 manandkumar@gmail.com")
+    st.sidebar.markdown(
+        "<div class='footer'>📧 manandkumar@gmail.com</div>",
+        unsafe_allow_html=True
+    )
