@@ -6,7 +6,7 @@
 # - Member login system
 # - Body composition tracking
 # - Progress visualization
-# - HIIT tracking (Add, View, Edit, Delete)
+# - HIIT workout tracking (NEW 🔥)
 # ============================================================
 
 import streamlit as st
@@ -34,7 +34,7 @@ HIIT_FILE = "hiit_data.csv"
 
 
 def save_hiit_session(data):
-    """Save HIIT session"""
+    """Save HIIT session to CSV"""
     df = pd.DataFrame([data])
 
     if os.path.exists(HIIT_FILE):
@@ -69,11 +69,11 @@ st.title("👤 Member Dashboard")
 reports = load_reports()
 
 if not reports:
-    st.warning("⚠️ No members found. Add a report first.")
+    st.warning("⚠️ No members found. Please add a report first.")
     st.stop()
 
 # -------------------------------------------------------
-# LOGIN
+# LOGIN SECTION
 # -------------------------------------------------------
 
 if not st.session_state.logged_in:
@@ -105,7 +105,7 @@ if not st.session_state.logged_in:
             st.rerun()
 
 # -------------------------------------------------------
-# DASHBOARD
+# MAIN DASHBOARD
 # -------------------------------------------------------
 
 else:
@@ -203,7 +203,7 @@ else:
         st.line_chart(df["MuscleMass"])
 
     # -------------------------------------------------------
-    # HIIT TRACKER
+    # 🔥 HIIT TRACKER (NEW FEATURE)
     # -------------------------------------------------------
 
     st.divider()
@@ -218,6 +218,7 @@ else:
                 "Workout Type",
                 ["Running", "Cycling", "Skipping", "Circuit", "Other"]
             )
+
             duration = st.number_input("Duration (minutes)", 1, 180)
 
         with col2:
@@ -266,88 +267,66 @@ else:
         st.info("No HIIT data available")
 
     # -------------------------------------------------------
-    # EDIT HIIT
+    # HIIT CALORIE TREND
     # -------------------------------------------------------
-
-    st.subheader("✏️ Edit HIIT Session")
 
     if not hiit_df.empty:
 
-        user_hiit = hiit_df[hiit_df["Name"] == selected_name].reset_index()
+        user_hiit = hiit_df[hiit_df["Name"] == selected_name]
 
         if not user_hiit.empty:
-
-            options = [
-                f"{row['Date']} | {row['Workout']} | {row['Calories']} cal"
-                for _, row in user_hiit.iterrows()
-            ]
-
-            selected_idx = st.selectbox(
-                "Select session",
-                range(len(options)),
-                format_func=lambda x: options[x]
-            )
-
-            selected_row = user_hiit.iloc[selected_idx]
-
-            with st.form("edit_hiit"):
-
-                workout_type = st.selectbox(
-                    "Workout",
-                    ["Running", "Cycling", "Skipping", "Circuit", "Other"],
-                    index=0
-                )
-
-                duration = st.number_input("Duration", value=int(selected_row["Duration"]))
-                calories = st.number_input("Calories", value=int(selected_row["Calories"]))
-                heart_rate = st.number_input("Heart Rate", value=int(selected_row["HeartRate"]))
-                notes = st.text_area("Notes", value=selected_row.get("Notes", ""))
-
-                if st.form_submit_button("Update"):
-
-                    idx = selected_row["index"]
-
-                    hiit_df.loc[idx, "Workout"] = workout_type
-                    hiit_df.loc[idx, "Duration"] = duration
-                    hiit_df.loc[idx, "Calories"] = calories
-                    hiit_df.loc[idx, "HeartRate"] = heart_rate
-                    hiit_df.loc[idx, "Notes"] = notes
-
-                    hiit_df.to_csv(HIIT_FILE, index=False)
-
-                    st.success("Updated successfully!")
-                    st.rerun()
+            st.subheader("📈 HIIT Calories Trend")
+            st.line_chart(user_hiit["Calories"])
 
     # -------------------------------------------------------
-    # DELETE HIIT
+    # WEEKLY INSIGHTS
     # -------------------------------------------------------
 
-    st.subheader("🗑️ Delete HIIT Session")
+    st.subheader("🧠 Weekly Insights")
 
-    if not hiit_df.empty:
+    if len(df) > 1:
 
-        user_hiit = hiit_df[hiit_df["Name"] == selected_name].reset_index()
+        recent = df.tail(7)
+        weight_change = recent["Weight"].iloc[-1] - recent["Weight"].iloc[0]
 
-        if not user_hiit.empty:
+        if weight_change < -1:
+            st.info("🔥 Great fat loss this week")
+        elif weight_change > 1:
+            st.warning("⚠️ Weight increased")
+        else:
+            st.info("👍 Weight stable")
 
-            delete_idx = st.selectbox(
-                "Select session to delete",
-                range(len(user_hiit)),
-                format_func=lambda x: f"{user_hiit.iloc[x]['Date']} | {user_hiit.iloc[x]['Workout']}"
-            )
+    # -------------------------------------------------------
+    # FULL DATA
+    # -------------------------------------------------------
 
-            confirm = st.checkbox("Confirm delete")
+    st.subheader("📋 Full Report")
+    st.dataframe(df_display, use_container_width=True)
 
-            if st.button("Delete HIIT"):
+    # -------------------------------------------------------
+    # DELETE RECORD
+    # -------------------------------------------------------
 
-                if confirm:
+    st.subheader("🗑️ Delete Record")
 
-                    idx = user_hiit.iloc[delete_idx]["index"]
-                    hiit_df = hiit_df.drop(index=idx)
+    options = [
+        f"{i} | {row.get('Date','')} | {row.get('Weight','')} kg"
+        for i, row in df.iterrows()
+    ]
 
-                    hiit_df.to_csv(HIIT_FILE, index=False)
+    selected_index = st.selectbox(
+        "Select record",
+        range(len(options)),
+        format_func=lambda x: options[x]
+    )
 
-                    st.success("Deleted successfully!")
-                    st.rerun()
-                else:
-                    st.warning("Please confirm deletion")
+    confirm = st.checkbox("Confirm delete")
+
+    if st.button("Delete Selected Record"):
+
+        if confirm:
+            delete_record(selected_name, selected_index)
+            st.success("🗑️ Record deleted!")
+            st.rerun()
+        else:
+            st.warning("Please confirm deletion")
