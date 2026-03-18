@@ -1,6 +1,15 @@
 # ============================================================
 # FitCom - Add Body Composition Report
 # Author: Anand Kumar
+#
+# Purpose:
+# Capture and store member body composition data
+# with real-time calculations and insights.
+#
+# Design Notes:
+# - Structured sections for better UX
+# - Real-time metrics for instant feedback
+# - Optimized layout using columns (less scrolling)
 # ============================================================
 
 import streamlit as st
@@ -12,29 +21,34 @@ from storage import save_report
 from sidebar import render_sidebar
 
 # -------------------------------------------------------
-# Render Sidebar
+# INIT
 # -------------------------------------------------------
 
 render_sidebar()
 
-st.title("➕ Add New Member's Body Composition Report")
+st.markdown("<h2>Add Member Report</h2>", unsafe_allow_html=True)
+st.caption("Capture body composition and fitness metrics")
 
 # -------------------------------------------------------
-# Utility Functions
+# UTILITY FUNCTIONS
 # -------------------------------------------------------
 
 def calculate_bmi(weight, height_in):
-    """Calculate BMI using kg and inches"""
+    """
+    Calculate BMI from weight (kg) and height (inches)
+    Handles division-by-zero edge case
+    """
     if height_in == 0:
         return 0
-
     height_m = height_in * 0.0254
     return round(weight / (height_m ** 2), 2)
 
 
 def calculate_bmr(weight, height_cm, age, gender):
-    """Mifflin-St Jeor Equation"""
-
+    """
+    Mifflin-St Jeor Equation
+    Used for estimating daily calorie needs
+    """
     if gender == "Male":
         return round((10 * weight) + (6.25 * height_cm) - (5 * age) + 5)
     else:
@@ -42,7 +56,7 @@ def calculate_bmr(weight, height_cm, age, gender):
 
 
 def ideal_body_weight(height_in):
-    """Devine formula"""
+    """Devine formula for ideal weight"""
     return round(50 + 2.3 * (height_in - 60), 1)
 
 
@@ -58,33 +72,26 @@ def water_weight(weight, bodywater):
     return round(weight * bodywater / 100, 2)
 
 
-# -------------------------------------------------------
-# Color Status Function
-# -------------------------------------------------------
-
 def status_dot(value, green_range, amber_range):
     """
-    Returns color emoji indicator
+    Returns quick visual indicator for health status
+    Helps users interpret values without reading ranges
     """
-
     if green_range[0] <= value <= green_range[1]:
         return "🟢"
-
     elif amber_range[0] <= value <= amber_range[1]:
         return "🟡"
-
     else:
         return "🔴"
 
 
-# -------------------------------------------------------
-# Image Upload Function
-# -------------------------------------------------------
-
 def save_image(uploaded_file):
-
+    """
+    Stores uploaded image locally
+    - Converts to JPEG for consistency
+    - Generates unique filename
+    """
     try:
-
         image = Image.open(uploaded_file)
 
         if image.mode != "RGB":
@@ -93,7 +100,6 @@ def save_image(uploaded_file):
         os.makedirs("profiles", exist_ok=True)
 
         filename = f"{uuid.uuid4()}.jpg"
-
         path = os.path.join("profiles", filename)
 
         image.save(path, "JPEG")
@@ -101,158 +107,113 @@ def save_image(uploaded_file):
         return path, image
 
     except:
-
         st.error("Image saving failed")
-
         return None, None
 
 
-# -------------------------------------------------------
-# User Profile Section
-# -------------------------------------------------------
+# =======================================================
+# USER PROFILE
+# =======================================================
 
-st.subheader("User Profile")
+st.markdown("<h3>User Profile</h3>", unsafe_allow_html=True)
 
-uploaded_photo = st.file_uploader(
-    "Upload Selfie",
-    type=["jpg","jpeg","png"]
-)
+col1, col2 = st.columns([1,2])
 
-photo_path = None
-preview = None
+with col1:
+    uploaded_photo = st.file_uploader("Upload Selfie", type=["jpg","jpeg","png"])
 
-if uploaded_photo:
+    photo_path = None
+    if uploaded_photo:
+        photo_path, preview = save_image(uploaded_photo)
+        if preview:
+            st.image(preview, width=150)
 
-    photo_path, preview = save_image(uploaded_photo)
-
-    if preview:
-        st.image(preview, width=200)
-
-name = st.text_input("Name")
-
-gender = st.selectbox(
-    "Gender",
-    ["Male","Female"]
-)
-
-age = st.number_input("Age", min_value=10, max_value=100)
-
-height = st.number_input("Height (inches)", min_value=48, max_value=90)
+with col2:
+    name = st.text_input("Name")
+    gender = st.selectbox("Gender", ["Male","Female"])
+    age = st.number_input("Age", 10, 100)
+    height = st.number_input("Height (inches)", 48, 90)
 
 height_cm = height * 2.54
 
+# =======================================================
+# BODY METRICS
+# =======================================================
 
-# -------------------------------------------------------
-# Body Metrics Input
-# -------------------------------------------------------
+st.markdown("<h3>Body Composition</h3>", unsafe_allow_html=True)
 
-st.subheader("Body Composition Metrics")
+col1, col2, col3 = st.columns(3)
 
-weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0)
+with col1:
+    weight = st.number_input("Weight (kg)", 30.0, 200.0)
+    bmi = calculate_bmi(weight, height)
+    bmi_status = status_dot(bmi,(18.5,24.9),(25,29.9))
+    st.metric("BMI", f"{bmi} {bmi_status}")
 
-# BMI auto calculated
+with col2:
+    bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
 
-bmi = calculate_bmi(weight, height)
+    if gender == "Male":
+        bodyfat_status = status_dot(bodyfat,(10,20),(20,25))
+    else:
+        bodyfat_status = status_dot(bodyfat,(18,28),(28,35))
 
-bmi_status = status_dot(bmi,(18.5,24.9),(25,29.9))
+    st.metric("Body Fat", f"{bodyfat}% {bodyfat_status}")
 
-st.metric("BMI", f"{bmi} {bmi_status}")
+with col3:
+    muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0)
+    muscle_rate = round((muscle_mass / weight) * 100,2) if weight>0 else 0
+    st.metric("Muscle %", muscle_rate)
 
-
-# -------------------------------------------------------
-# Body Fat
-# -------------------------------------------------------
-
-bodyfat = st.number_input("Body Fat %", min_value=1.0, max_value=60.0)
-
-# Gender specific body fat ranges
-
-if gender == "Male":
-    bodyfat_status = status_dot(bodyfat,(10,20),(20,25))
-else:
-    bodyfat_status = status_dot(bodyfat,(18,28),(28,35))
-
-st.write(f"Body Fat Status {bodyfat_status}")
-
+# Derived values
 fat_mass_value = fat_mass(weight, bodyfat)
-
-st.metric("Fat Mass (kg)", fat_mass_value)
-
 ffbw = fat_free_mass(weight, fat_mass_value)
 
-st.metric("Fat Free Body Weight", ffbw)
+st.metric("Fat Mass", fat_mass_value)
+st.metric("Fat Free Mass", ffbw)
 
+# =======================================================
+# ADDITIONAL METRICS
+# =======================================================
 
-# -------------------------------------------------------
-# Muscle Metrics
-# -------------------------------------------------------
+st.markdown("<h3>Additional Metrics</h3>", unsafe_allow_html=True)
 
-muscle_mass = st.number_input("Muscle Mass (kg)", min_value=10.0, max_value=100.0)
+col1, col2, col3 = st.columns(3)
 
-muscle_rate = round((muscle_mass / weight) * 100,2) if weight>0 else 0
+with col1:
+    body_water = st.number_input("Body Water %", 1.0, 80.0)
+    water_weight_value = water_weight(weight, body_water)
+    st.metric("Water Weight", water_weight_value)
 
-st.metric("Muscle Rate %", muscle_rate)
+with col2:
+    visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
+    visceral_status = status_dot(visceral_fat,(1,10),(11,15))
+    st.metric("Visceral Fat", f"{visceral_fat} {visceral_status}")
 
-skeletal_muscle = st.number_input("Skeletal Muscle %", min_value=10.0, max_value=60.0)
+with col3:
+    protein_mass = st.number_input("Protein Mass (kg)", 1.0, 30.0)
+    protein_rate = round((protein_mass / weight)*100,2) if weight>0 else 0
+    st.metric("Protein %", protein_rate)
 
-bone_mass = st.number_input("Bone Mass (kg)", min_value=1.0, max_value=10.0)
+# =======================================================
+# METABOLIC DATA
+# =======================================================
 
+st.markdown("<h3>Metabolic Insights</h3>", unsafe_allow_html=True)
 
-# -------------------------------------------------------
-# Protein Metrics
-# -------------------------------------------------------
+col1, col2 = st.columns(2)
 
-protein_mass = st.number_input("Protein Mass (kg)", min_value=1.0, max_value=30.0)
+with col1:
+    bmr = calculate_bmr(weight,height_cm,age,gender)
+    st.metric("BMR", bmr)
 
-protein_rate = round((protein_mass / weight)*100,2) if weight>0 else 0
+with col2:
+    ideal_weight = ideal_body_weight(height)
+    st.metric("Ideal Weight", ideal_weight)
 
-st.metric("Protein Rate %", protein_rate)
-
-
-# -------------------------------------------------------
-# Water Metrics
-# -------------------------------------------------------
-
-body_water = st.number_input("Body Water %", min_value=1.0, max_value=80.0)
-
-water_weight_value = water_weight(weight, body_water)
-
-st.metric("Water Weight (kg)", water_weight_value)
-
-
-# -------------------------------------------------------
-# Fat Distribution
-# -------------------------------------------------------
-
-subcutaneous_fat = st.number_input("Subcutaneous Fat %", min_value=1.0, max_value=50.0)
-
-visceral_fat = st.number_input("Visceral Fat Level", min_value=1.0, max_value=30.0)
-
-visceral_status = status_dot(visceral_fat,(1,10),(11,15))
-
-st.write(f"Visceral Fat Status {visceral_status}")
-
-
-# -------------------------------------------------------
-# Metabolic Metrics
-# -------------------------------------------------------
-
-bmr = calculate_bmr(weight,height_cm,age,gender)
-
-st.metric("BMR (Calories/day)",bmr)
-
-body_age = st.number_input("Body Age", min_value=10, max_value=100)
-
-whr = st.number_input("WHR (Waist Hip Ratio)", min_value=0.5, max_value=2.0)
-
-ideal_weight = ideal_body_weight(height)
-
-st.metric("Ideal Body Weight", ideal_weight)
-
-
-# -------------------------------------------------------
-# Save Report
-# -------------------------------------------------------
+# =======================================================
+# SAVE REPORT
+# =======================================================
 
 st.divider()
 
@@ -263,8 +224,8 @@ if st.button("Save Report"):
 
     else:
 
+        # Persist full report (acts as history log)
         report = {
-
             "Name": name,
             "Gender": gender,
             "Date": datetime.now().strftime("%Y-%m-%d"),
@@ -278,20 +239,15 @@ if st.button("Save Report"):
             "FatFreeBodyWeight": ffbw,
             "MuscleMass": muscle_mass,
             "MuscleRate": muscle_rate,
-            "SkeletalMuscle": skeletal_muscle,
-            "BoneMass": bone_mass,
+            "BodyWater": body_water,
+            "WaterWeight": water_weight_value,
             "ProteinMass": protein_mass,
             "ProteinRate": protein_rate,
-            "WaterWeight": water_weight_value,
-            "BodyWater": body_water,
-            "SubcutaneousFat": subcutaneous_fat,
             "VisceralFat": visceral_fat,
             "BMR": bmr,
-            "BodyAge": body_age,
-            "WHR": whr,
             "IdealBodyWeight": ideal_weight
         }
 
         save_report(name, report)
 
-        st.success("Report saved successfully")
+        st.success("Report saved successfully ✅")
