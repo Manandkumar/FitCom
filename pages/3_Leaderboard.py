@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Leaderboard (Using UI Layer)
+# FitCom - Leaderboard (Final Polished Version)
 # ============================================================
 
 import streamlit as st
@@ -23,6 +23,69 @@ FILE_NAME = "fitcom_reports.csv"
 page_header("Leaderboard", "Top performers based on fitness score")
 
 # -------------------------------------------------------
+# STYLING FIX (Clean Table + Alignment)
+# -------------------------------------------------------
+
+st.markdown("""
+<style>
+
+/* Table spacing */
+table {
+    border-collapse: separate !important;
+    border-spacing: 0 10px;
+    font-size: 14px !important;
+}
+
+/* Header */
+thead th {
+    text-align: center !important;
+    background: #f4f6f8;
+    padding: 10px !important;
+    border: none !important;
+}
+
+/* Row style (card feel) */
+tbody tr {
+    background: white;
+    box-shadow: 0px 2px 6px rgba(0,0,0,0.05);
+}
+
+/* Cells */
+tbody td {
+    padding: 10px !important;
+    border: none !important;
+    text-align: center;
+}
+
+/* Rounded rows */
+tbody tr td:first-child {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+tbody tr td:last-child {
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+/* Image fix */
+img {
+    width: 50px !important;
+    height: 50px !important;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+/* Indicator alignment */
+.indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------------------------------
 # UTILITIES
 # -------------------------------------------------------
 
@@ -30,7 +93,7 @@ def get_image_base64(path):
     try:
         with open(path, "rb") as img:
             encoded = base64.b64encode(img.read()).decode()
-        return f"<img src='data:image/png;base64,{encoded}' width='60'>"
+        return f"<img src='data:image/png;base64,{encoded}'>"
     except:
         return "—"
 
@@ -68,7 +131,6 @@ if os.path.exists(FILE_NAME):
 
     df = pd.read_csv(FILE_NAME)
 
-    # Always use latest record per user
     latest_df = df.sort_values("Date").groupby("Name").tail(1)
 
     latest_df["FitnessScore"] = latest_df.apply(calculate_fitness_score, axis=1)
@@ -76,12 +138,14 @@ if os.path.exists(FILE_NAME):
     leaderboard = latest_df.sort_values("FitnessScore", ascending=False)
 
     # -------------------------------------------------------
-    # TOP 3 (CARD)
+    # TOP 3 (CLEAN METRIC VIEW)
     # -------------------------------------------------------
 
-    top3 = leaderboard.head(3)
+    section("Top Performers")
 
+    top3 = leaderboard.head(3)
     cols = st.columns(3)
+
     medals = ["🥇", "🥈", "🥉"]
 
     for i, (_, row) in enumerate(top3.iterrows()):
@@ -92,7 +156,7 @@ if os.path.exists(FILE_NAME):
             )
 
     # -------------------------------------------------------
-    # FULL TABLE (CARD)
+    # FULL LEADERBOARD TABLE
     # -------------------------------------------------------
 
     section("Full Leaderboard")
@@ -101,29 +165,32 @@ if os.path.exists(FILE_NAME):
 
     for i, (_, row) in enumerate(leaderboard.iterrows()):
 
+        # Rank
         rank = ["🥇","🥈","🥉"][i] if i < 3 else str(i+1)
 
+        # Photo
         photo = row.get("Photo", "")
         if pd.notna(photo) and os.path.exists(photo):
             photo_html = get_image_base64(photo)
         else:
             photo_html = "—"
 
+        # Row data
         rows.append({
             "Rank": rank,
             "Photo": photo_html,
             "Name": row["Name"],
             "Score": row["FitnessScore"],
-            "BMI": f"{row.get('BMI','-')} {indicator(row.get('BMI',0),24.9,29.9)}",
-            "Body Fat": f"{row.get('BodyFat','-')} {indicator(row.get('BodyFat',0),20,25)}",
+            "BMI": f"<span class='indicator'>{row.get('BMI','-')} {indicator(row.get('BMI',0),24.9,29.9)}</span>",
+            "Body Fat": f"<span class='indicator'>{row.get('BodyFat','-')} {indicator(row.get('BodyFat',0),20,25)}</span>",
             "Muscle": row.get("MuscleMass","-"),
             "Water": row.get("BodyWater","-"),
-            "Visceral": f"{row.get('VisceralFat','-')} {indicator(row.get('VisceralFat',0),10,15)}"
+            "Visceral": f"<span class='indicator'>{row.get('VisceralFat','-')} {indicator(row.get('VisceralFat',0),10,15)}</span>"
         })
 
     table_df = pd.DataFrame(rows)
 
-    # Wrap table inside card
+    # Render inside card
     card(table_df.to_html(escape=False, index=False))
 
 else:
