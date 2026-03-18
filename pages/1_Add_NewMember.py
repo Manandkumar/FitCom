@@ -3,13 +3,13 @@
 # Author: Anand Kumar
 #
 # Purpose:
-# Capture and store member body composition data
-# with real-time calculations and insights.
+# Capture member body composition data with real-time insights
+# and store it for progress tracking and analytics.
 #
-# Design Notes:
-# - Structured sections for better UX
-# - Real-time metrics for instant feedback
-# - Optimized layout using columns (less scrolling)
+# Notes:
+# - UI optimized for readability (uniform fonts, compact layout)
+# - All original fields retained (no data loss)
+# - Designed for daily use in gym / fitness environment
 # ============================================================
 
 import streamlit as st
@@ -21,10 +21,59 @@ from storage import save_report
 from sidebar import render_sidebar
 
 # -------------------------------------------------------
-# INIT
+# INITIALIZE PAGE
 # -------------------------------------------------------
 
 render_sidebar()
+
+# -------------------------------------------------------
+# GLOBAL UI FIX (Uniform font + compact layout)
+# -------------------------------------------------------
+
+st.markdown("""
+<style>
+
+/* Global font consistency */
+html, body, [class*="css"] {
+    font-size: 14px !important;
+}
+
+/* Labels */
+label {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+
+/* Inputs */
+input, select {
+    font-size: 14px !important;
+}
+
+/* Metrics */
+div[data-testid="metric-container"] {
+    padding: 8px !important;
+}
+
+div[data-testid="metric-container"] label {
+    font-size: 12px !important;
+}
+
+div[data-testid="metric-container"] div {
+    font-size: 16px !important;
+    font-weight: 600;
+}
+
+/* Reduce spacing */
+.block-container {
+    padding-top: 1rem;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------------------------------------
+# PAGE HEADER
+# -------------------------------------------------------
 
 st.markdown("<h2>Add Member Report</h2>", unsafe_allow_html=True)
 st.caption("Capture body composition and fitness metrics")
@@ -34,10 +83,7 @@ st.caption("Capture body composition and fitness metrics")
 # -------------------------------------------------------
 
 def calculate_bmi(weight, height_in):
-    """
-    Calculate BMI from weight (kg) and height (inches)
-    Handles division-by-zero edge case
-    """
+    """BMI using kg + inches (handles zero height safely)"""
     if height_in == 0:
         return 0
     height_m = height_in * 0.0254
@@ -45,10 +91,7 @@ def calculate_bmi(weight, height_in):
 
 
 def calculate_bmr(weight, height_cm, age, gender):
-    """
-    Mifflin-St Jeor Equation
-    Used for estimating daily calorie needs
-    """
+    """Mifflin-St Jeor Equation for calorie estimation"""
     if gender == "Male":
         return round((10 * weight) + (6.25 * height_cm) - (5 * age) + 5)
     else:
@@ -56,7 +99,7 @@ def calculate_bmr(weight, height_cm, age, gender):
 
 
 def ideal_body_weight(height_in):
-    """Devine formula for ideal weight"""
+    """Devine formula"""
     return round(50 + 2.3 * (height_in - 60), 1)
 
 
@@ -72,25 +115,8 @@ def water_weight(weight, bodywater):
     return round(weight * bodywater / 100, 2)
 
 
-def status_dot(value, green_range, amber_range):
-    """
-    Returns quick visual indicator for health status
-    Helps users interpret values without reading ranges
-    """
-    if green_range[0] <= value <= green_range[1]:
-        return "🟢"
-    elif amber_range[0] <= value <= amber_range[1]:
-        return "🟡"
-    else:
-        return "🔴"
-
-
 def save_image(uploaded_file):
-    """
-    Stores uploaded image locally
-    - Converts to JPEG for consistency
-    - Generates unique filename
-    """
+    """Save uploaded image locally with unique name"""
     try:
         image = Image.open(uploaded_file)
 
@@ -121,12 +147,12 @@ col1, col2 = st.columns([1,2])
 
 with col1:
     uploaded_photo = st.file_uploader("Upload Selfie", type=["jpg","jpeg","png"])
-
     photo_path = None
+
     if uploaded_photo:
         photo_path, preview = save_image(uploaded_photo)
         if preview:
-            st.image(preview, width=150)
+            st.image(preview, width=140)
 
 with col2:
     name = st.text_input("Name")
@@ -137,7 +163,7 @@ with col2:
 height_cm = height * 2.54
 
 # =======================================================
-# BODY METRICS
+# BODY COMPOSITION
 # =======================================================
 
 st.markdown("<h3>Body Composition</h3>", unsafe_allow_html=True)
@@ -147,36 +173,46 @@ col1, col2, col3 = st.columns(3)
 with col1:
     weight = st.number_input("Weight (kg)", 30.0, 200.0)
     bmi = calculate_bmi(weight, height)
-    bmi_status = status_dot(bmi,(18.5,24.9),(25,29.9))
-    st.metric("BMI", f"{bmi} {bmi_status}")
+    st.metric("BMI", bmi)
 
 with col2:
     bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
-
-    if gender == "Male":
-        bodyfat_status = status_dot(bodyfat,(10,20),(20,25))
-    else:
-        bodyfat_status = status_dot(bodyfat,(18,28),(28,35))
-
-    st.metric("Body Fat", f"{bodyfat}% {bodyfat_status}")
 
 with col3:
     muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0)
     muscle_rate = round((muscle_mass / weight) * 100,2) if weight>0 else 0
     st.metric("Muscle %", muscle_rate)
 
-# Derived values
+# Derived
 fat_mass_value = fat_mass(weight, bodyfat)
 ffbw = fat_free_mass(weight, fat_mass_value)
 
-st.metric("Fat Mass", fat_mass_value)
-st.metric("Fat Free Mass", ffbw)
+col1, col2 = st.columns(2)
+col1.metric("Fat Mass", fat_mass_value)
+col2.metric("Fat Free Mass", ffbw)
 
 # =======================================================
-# ADDITIONAL METRICS
+# ADVANCED BODY METRICS
 # =======================================================
 
-st.markdown("<h3>Additional Metrics</h3>", unsafe_allow_html=True)
+st.markdown("<h3>Advanced Metrics</h3>", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    skeletal_muscle = st.number_input("Skeletal Muscle %", 10.0, 60.0)
+
+with col2:
+    bone_mass = st.number_input("Bone Mass (kg)", 1.0, 10.0)
+
+with col3:
+    subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0)
+
+# =======================================================
+# HYDRATION & PROTEIN
+# =======================================================
+
+st.markdown("<h3>Hydration & Protein</h3>", unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
 
@@ -186,30 +222,33 @@ with col1:
     st.metric("Water Weight", water_weight_value)
 
 with col2:
-    visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
-    visceral_status = status_dot(visceral_fat,(1,10),(11,15))
-    st.metric("Visceral Fat", f"{visceral_fat} {visceral_status}")
-
-with col3:
     protein_mass = st.number_input("Protein Mass (kg)", 1.0, 30.0)
     protein_rate = round((protein_mass / weight)*100,2) if weight>0 else 0
     st.metric("Protein %", protein_rate)
 
+with col3:
+    visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
+
 # =======================================================
-# METABOLIC DATA
+# METABOLIC
 # =======================================================
 
 st.markdown("<h3>Metabolic Insights</h3>", unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     bmr = calculate_bmr(weight,height_cm,age,gender)
     st.metric("BMR", bmr)
 
 with col2:
-    ideal_weight = ideal_body_weight(height)
-    st.metric("Ideal Weight", ideal_weight)
+    body_age = st.number_input("Body Age", 10, 100)
+
+with col3:
+    whr = st.number_input("WHR", 0.5, 2.0)
+
+ideal_weight = ideal_body_weight(height)
+st.metric("Ideal Weight", ideal_weight)
 
 # =======================================================
 # SAVE REPORT
@@ -224,7 +263,6 @@ if st.button("Save Report"):
 
     else:
 
-        # Persist full report (acts as history log)
         report = {
             "Name": name,
             "Gender": gender,
@@ -239,12 +277,17 @@ if st.button("Save Report"):
             "FatFreeBodyWeight": ffbw,
             "MuscleMass": muscle_mass,
             "MuscleRate": muscle_rate,
+            "SkeletalMuscle": skeletal_muscle,
+            "BoneMass": bone_mass,
+            "SubcutaneousFat": subcutaneous_fat,
             "BodyWater": body_water,
             "WaterWeight": water_weight_value,
             "ProteinMass": protein_mass,
             "ProteinRate": protein_rate,
             "VisceralFat": visceral_fat,
             "BMR": bmr,
+            "BodyAge": body_age,
+            "WHR": whr,
             "IdealBodyWeight": ideal_weight
         }
 
