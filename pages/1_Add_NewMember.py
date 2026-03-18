@@ -1,15 +1,9 @@
 # ============================================================
-# FitCom - Add Body Composition Report
+# FitCom - Add Body Composition Report (Premium UI)
 # Author: Anand Kumar
 #
 # Purpose:
-# Capture member body composition data with real-time insights
-# and store it for progress tracking and analytics.
-#
-# Notes:
-# - UI optimized for readability (uniform fonts, compact layout)
-# - All original fields retained (no data loss)
-# - Designed for daily use in gym / fitness environment
+# Capture member fitness data with structured UI + real-time insights
 # ============================================================
 
 import streamlit as st
@@ -21,85 +15,86 @@ from storage import save_report
 from sidebar import render_sidebar
 
 # -------------------------------------------------------
-# INITIALIZE PAGE
+# INIT
 # -------------------------------------------------------
 
 render_sidebar()
 
 # -------------------------------------------------------
-# GLOBAL UI FIX (Uniform font + compact layout)
+# GLOBAL UI FIX (Compact + Professional Look)
 # -------------------------------------------------------
 
 st.markdown("""
 <style>
 
-/* Global font consistency */
-html, body, [class*="css"] {
-    font-size: 14px !important;
+/* Compact inputs */
+input, select {
+    height: 36px !important;
+    padding: 6px !important;
+}
+
+/* Number input */
+div[data-baseweb="input"] {
+    height: 36px !important;
 }
 
 /* Labels */
 label {
     font-size: 13px !important;
-    font-weight: 500 !important;
+    margin-bottom: 2px !important;
 }
 
-/* Inputs */
-input, select {
-    font-size: 14px !important;
+/* Reduce spacing */
+.stNumberInput, .stTextInput, .stSelectbox {
+    margin-bottom: 8px !important;
 }
 
 /* Metrics */
 div[data-testid="metric-container"] {
-    padding: 8px !important;
+    padding: 6px !important;
 }
 
-div[data-testid="metric-container"] label {
-    font-size: 12px !important;
-}
-
-div[data-testid="metric-container"] div {
-    font-size: 16px !important;
-    font-weight: 600;
-}
-
-/* Reduce spacing */
+/* Container spacing */
 .block-container {
     padding-top: 1rem;
+}
+
+/* CARD STYLE */
+.card {
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.06);
+    margin-bottom: 14px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------
-# PAGE HEADER
+# HEADER
 # -------------------------------------------------------
 
 st.markdown("<h2>Add Member Report</h2>", unsafe_allow_html=True)
 st.caption("Capture body composition and fitness metrics")
 
 # -------------------------------------------------------
-# UTILITY FUNCTIONS
+# UTILITIES
 # -------------------------------------------------------
 
 def calculate_bmi(weight, height_in):
-    """BMI using kg + inches (handles zero height safely)"""
     if height_in == 0:
         return 0
-    height_m = height_in * 0.0254
-    return round(weight / (height_m ** 2), 2)
+    return round(weight / ((height_in * 0.0254) ** 2), 2)
 
 
 def calculate_bmr(weight, height_cm, age, gender):
-    """Mifflin-St Jeor Equation for calorie estimation"""
     if gender == "Male":
         return round((10 * weight) + (6.25 * height_cm) - (5 * age) + 5)
-    else:
-        return round((10 * weight) + (6.25 * height_cm) - (5 * age) - 161)
+    return round((10 * weight) + (6.25 * height_cm) - (5 * age) - 161)
 
 
 def ideal_body_weight(height_in):
-    """Devine formula"""
     return round(50 + 2.3 * (height_in - 60), 1)
 
 
@@ -116,7 +111,6 @@ def water_weight(weight, bodywater):
 
 
 def save_image(uploaded_file):
-    """Save uploaded image locally with unique name"""
     try:
         image = Image.open(uploaded_file)
 
@@ -125,9 +119,7 @@ def save_image(uploaded_file):
 
         os.makedirs("profiles", exist_ok=True)
 
-        filename = f"{uuid.uuid4()}.jpg"
-        path = os.path.join("profiles", filename)
-
+        path = os.path.join("profiles", f"{uuid.uuid4()}.jpg")
         image.save(path, "JPEG")
 
         return path, image
@@ -138,8 +130,10 @@ def save_image(uploaded_file):
 
 
 # =======================================================
-# USER PROFILE
+# USER PROFILE (CARD)
 # =======================================================
+
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
 st.markdown("<h3>User Profile</h3>", unsafe_allow_html=True)
 
@@ -152,19 +146,25 @@ with col1:
     if uploaded_photo:
         photo_path, preview = save_image(uploaded_photo)
         if preview:
-            st.image(preview, width=140)
+            st.image(preview, width=120)
 
 with col2:
     name = st.text_input("Name")
     gender = st.selectbox("Gender", ["Male","Female"])
-    age = st.number_input("Age", 10, 100)
-    height = st.number_input("Height (inches)", 48, 90)
+
+    c1, c2 = st.columns(2)
+    age = c1.number_input("Age", 10, 100)
+    height = c2.number_input("Height (inches)", 48, 90)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 height_cm = height * 2.54
 
 # =======================================================
-# BODY COMPOSITION
+# BODY COMPOSITION (CARD)
 # =======================================================
+
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
 st.markdown("<h3>Body Composition</h3>", unsafe_allow_html=True)
 
@@ -187,30 +187,33 @@ with col3:
 fat_mass_value = fat_mass(weight, bodyfat)
 ffbw = fat_free_mass(weight, fat_mass_value)
 
-col1, col2 = st.columns(2)
-col1.metric("Fat Mass", fat_mass_value)
-col2.metric("Fat Free Mass", ffbw)
+c1, c2 = st.columns(2)
+c1.metric("Fat Mass", fat_mass_value)
+c2.metric("Fat Free Mass", ffbw)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # =======================================================
-# ADVANCED BODY METRICS
+# ADVANCED METRICS (CARD)
 # =======================================================
+
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
 st.markdown("<h3>Advanced Metrics</h3>", unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
 
-with col1:
-    skeletal_muscle = st.number_input("Skeletal Muscle %", 10.0, 60.0)
+skeletal_muscle = col1.number_input("Skeletal Muscle %", 10.0, 60.0)
+bone_mass = col2.number_input("Bone Mass (kg)", 1.0, 10.0)
+subcutaneous_fat = col3.number_input("Subcutaneous Fat %", 1.0, 50.0)
 
-with col2:
-    bone_mass = st.number_input("Bone Mass (kg)", 1.0, 10.0)
-
-with col3:
-    subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # =======================================================
-# HYDRATION & PROTEIN
+# HYDRATION & PROTEIN (CARD)
 # =======================================================
+
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
 st.markdown("<h3>Hydration & Protein</h3>", unsafe_allow_html=True)
 
@@ -229,9 +232,13 @@ with col2:
 with col3:
     visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
 
+st.markdown("</div>", unsafe_allow_html=True)
+
 # =======================================================
-# METABOLIC
+# METABOLIC (CARD)
 # =======================================================
+
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
 st.markdown("<h3>Metabolic Insights</h3>", unsafe_allow_html=True)
 
@@ -250,13 +257,15 @@ with col3:
 ideal_weight = ideal_body_weight(height)
 st.metric("Ideal Weight", ideal_weight)
 
+st.markdown("</div>", unsafe_allow_html=True)
+
 # =======================================================
-# SAVE REPORT
+# SAVE BUTTON
 # =======================================================
 
-st.divider()
+st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 
-if st.button("Save Report"):
+if st.button("Save Report", use_container_width=True):
 
     if name.strip() == "":
         st.error("Name required")
@@ -294,3 +303,5 @@ if st.button("Save Report"):
         save_report(name, report)
 
         st.success("Report saved successfully ✅")
+
+st.markdown("</div>", unsafe_allow_html=True)
