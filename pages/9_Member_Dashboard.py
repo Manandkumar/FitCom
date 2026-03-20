@@ -29,7 +29,6 @@ from storage import (
 # -------------------------------------------------------
 
 def calculate_streaks(df):
-
     if df.empty:
         return 0, 0
 
@@ -69,6 +68,9 @@ if "logged_in" not in st.session_state:
 if "user" not in st.session_state:
     st.session_state.user = None
 
+if "show_change_password" not in st.session_state:
+    st.session_state.show_change_password = False
+
 
 # -------------------------------------------------------
 # PAGE TITLE
@@ -84,7 +86,7 @@ if not reports:
 
 
 # =======================================================
-# 🔐 LOGIN SYSTEM (UNCHANGED + FIXED CHECK)
+# 🔐 LOGIN SYSTEM (FIXED)
 # =======================================================
 
 if not st.session_state.logged_in:
@@ -104,8 +106,8 @@ if not st.session_state.logged_in:
 
         stored_password = get_user_password(selected_name)
 
-        # ✅ FIXED (no loop issue)
-        if stored_password is None:
+        # ---------------- FIRST TIME LOGIN ----------------
+        if not stored_password:
 
             st.warning("⚠️ First time login — set your password")
 
@@ -125,6 +127,7 @@ if not st.session_state.logged_in:
                     st.success("✅ Password created! Please login.")
                     st.rerun()
 
+        # ---------------- NORMAL LOGIN ----------------
         else:
 
             password = st.text_input("Enter Password", type="password")
@@ -145,7 +148,7 @@ if not st.session_state.logged_in:
 
 
 # =======================================================
-# DASHBOARD
+# 🏠 DASHBOARD
 # =======================================================
 
 else:
@@ -154,51 +157,53 @@ else:
 
     st.success(f"Welcome {selected_name} 👋")
 
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.user = None
-        st.rerun()
+    colA, colB = st.columns([6, 1])
+
+    with colB:
+        if st.button("🚪 Logout"):
+            st.session_state.logged_in = False
+            st.session_state.user = None
+            st.rerun()
 
     # -------------------------------------------------------
-    # 🔐 CHANGE PASSWORD (TOGGLE LINK 🔥)
+    # 🔐 CHANGE PASSWORD (INSIDE DASHBOARD CLEAN 🔥)
     # -------------------------------------------------------
 
     st.divider()
-
-    if "show_change_password" not in st.session_state:
-        st.session_state.show_change_password = False
 
     if st.button("🔐 Change Password"):
         st.session_state.show_change_password = not st.session_state.show_change_password
 
     if st.session_state.show_change_password:
 
-        st.subheader("🔐 Update Password")
+        with st.container():
+            st.subheader("🔐 Update Password")
 
-        current_password = st.text_input("Current Password", type="password", key="cp")
-        new_password = st.text_input("New Password", type="password", key="np")
-        confirm_password = st.text_input("Confirm Password", type="password", key="cnp")
+            current_password = st.text_input("Current Password", type="password")
+            new_password = st.text_input("New Password", type="password")
+            confirm_password = st.text_input("Confirm Password", type="password")
 
-        if st.button("Update Password", key="update_btn"):
+            if st.button("Update Password"):
 
-            stored_password = get_user_password(selected_name)
+                stored_password = get_user_password(selected_name)
 
-            if not current_password:
-                st.warning("Enter current password")
+                if not current_password:
+                    st.warning("Enter current password")
 
-            elif hash_password(current_password) != stored_password:
-                st.error("❌ Current password incorrect")
+                elif hash_password(current_password) != stored_password:
+                    st.error("❌ Current password incorrect")
 
-            elif not new_password:
-                st.warning("Enter new password")
+                elif not new_password:
+                    st.warning("Enter new password")
 
-            elif new_password != confirm_password:
-                st.error("Passwords do not match")
+                elif new_password != confirm_password:
+                    st.error("Passwords do not match")
 
-            else:
-                set_user_password(selected_name, new_password)
-                st.success("✅ Password updated successfully")
-                st.session_state.show_change_password = False
+                else:
+                    set_user_password(selected_name, new_password)
+                    st.success("✅ Password updated successfully")
+                    st.session_state.show_change_password = False
+                    st.rerun()
 
     # -------------------------------------------------------
     # LOAD USER DATA
