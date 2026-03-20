@@ -1,43 +1,42 @@
 # ============================================================
-# Syntra AI Health Coach Engine
-# Author: Anand Kumar
+# FitCom - AI Coach Engine (FINAL - SAFE)
 # ============================================================
 
 def generate_ai_advice(row):
 
     advice = []
 
-    bmi = row["BMI"]
-    bodyfat = row["BodyFat"]
-    muscle = row["MuscleMass"]
-    water = row["BodyWater"]
-    visceral = row["VisceralFat"]
+    bmi = float(row.get("BMI", 0) or 0)
+    bodyfat = float(row.get("BodyFat", 0) or 0)
+    muscle = float(row.get("MuscleMass", 0) or 0)
+    water = float(row.get("BodyWater", 0) or 0)
+    visceral = float(row.get("VisceralFat", 0) or 0)
 
-    # BMI analysis
+    # BMI
     if bmi > 25:
-        advice.append("Your BMI is slightly high. Focus on fat reduction through cardio and calorie balance.")
+        advice.append("Your BMI is slightly high. Focus on fat reduction.")
     elif bmi < 18:
-        advice.append("Your BMI is low. Consider increasing protein intake and resistance training.")
+        advice.append("Your BMI is low. Increase nutrition and strength training.")
 
-    # Body fat analysis
+    # Body fat
     if bodyfat > 20:
-        advice.append("Body fat is above optimal. Increase daily activity and monitor nutrition quality.")
+        advice.append("Body fat is above optimal. Add cardio and improve diet.")
     else:
-        advice.append("Body fat is within a healthy range. Maintain current training consistency.")
+        advice.append("Body fat is in a healthy range.")
 
-    # Muscle analysis
+    # Muscle
     if muscle < 30:
-        advice.append("Muscle mass is lower than ideal. Strength training 3–4 times per week is recommended.")
+        advice.append("Muscle mass is low. Add resistance training.")
 
     # Hydration
     if water < 50:
-        advice.append("Body water percentage indicates possible dehydration. Increase daily water intake.")
+        advice.append("Hydration is low. Increase water intake.")
 
     # Visceral fat
     if visceral > 10:
-        advice.append("Visceral fat is elevated. Prioritize sleep, reduce sugar intake, and maintain regular workouts.")
+        advice.append("Visceral fat is high. Reduce sugar and improve sleep.")
 
     if not advice:
-        advice.append("Your body composition is balanced. Continue maintaining your current routine.")
+        advice.append("Your body composition is well balanced. Keep it up!")
 
     return advice

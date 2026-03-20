@@ -1,43 +1,40 @@
 # ============================================================
-# FitCom - Comparison Engine
-# Author: Anand Kumar
-#
-# Description:
-# Provides comparative analytics between multiple
-# participants in the FitCom dataset.
-#
-# Features:
-# • Best performer detection
-# • Lowest performer detection
-# • Metric comparison across participants
+# FitCom - Comparison Engine (FINAL - SAFE)
 # ============================================================
 
 import pandas as pd
 
 
-# ------------------------------------------------------------
-# Compare Reports
-# ------------------------------------------------------------
-# Generates a comparison summary for numeric metrics.
-# ------------------------------------------------------------
-
 def compare_reports(df):
 
-    numeric_cols = df.select_dtypes(include=["int64","float64"]).columns
+    if df.empty:
+        return pd.DataFrame()
+
+    # Select numeric columns safely
+    numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
 
     results = []
 
     for metric in numeric_cols:
 
-        best_idx = df[metric].idxmax()
-        worst_idx = df[metric].idxmin()
+        clean_df = df.dropna(subset=[metric])
 
-        results.append({
-            "Metric": metric,
-            "Best Performer": df.loc[best_idx]["Name"],
-            "Best Value": df.loc[best_idx][metric],
-            "Lowest Performer": df.loc[worst_idx]["Name"],
-            "Lowest Value": df.loc[worst_idx][metric]
-        })
+        if clean_df.empty:
+            continue
+
+        try:
+            best_idx = clean_df[metric].idxmax()
+            worst_idx = clean_df[metric].idxmin()
+
+            results.append({
+                "Metric": metric,
+                "Best Performer": clean_df.loc[best_idx].get("Name", "NA"),
+                "Best Value": round(clean_df.loc[best_idx][metric], 2),
+                "Lowest Performer": clean_df.loc[worst_idx].get("Name", "NA"),
+                "Lowest Value": round(clean_df.loc[worst_idx][metric], 2)
+            })
+
+        except Exception:
+            continue
 
     return pd.DataFrame(results)

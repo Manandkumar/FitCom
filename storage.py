@@ -1,5 +1,5 @@
 # -------------------------------------------------------
-# FitCom - DB Storage Layer
+# FitCom - DB Storage Layer (PRODUCTION SAFE)
 # -------------------------------------------------------
 
 from database import SessionLocal
@@ -26,7 +26,7 @@ def save_report(name, metrics):
 def load_reports():
     db = SessionLocal()
     try:
-        reports = db.query(Report).all()
+        reports = db.query(Report).order_by(Report.Date).all()
 
         grouped = {}
 
@@ -47,13 +47,16 @@ def load_reports():
 
 
 # -------------------------------------------------------
-# DELETE RECORD
+# DELETE RECORD (FIXED)
 # -------------------------------------------------------
 
 def delete_record(name, index):
     db = SessionLocal()
     try:
-        records = db.query(Report).filter(Report.Name == name).all()
+        records = db.query(Report)\
+                    .filter(Report.Name == name)\
+                    .order_by(Report.Date)\
+                    .all()
 
         if 0 <= index < len(records):
             db.delete(records[index])
@@ -63,16 +66,16 @@ def delete_record(name, index):
 
 
 # -------------------------------------------------------
-# UPDATE RECORD
+# UPDATE RECORD (SAFE)
 # -------------------------------------------------------
 
 def update_record(name, date, updated_data):
     db = SessionLocal()
     try:
-        record = db.query(Report).filter(
-            Report.Name == name,
-            Report.Date == date
-        ).first()
+        record = db.query(Report)\
+                   .filter(Report.Name == name, Report.Date == date)\
+                   .order_by(Report.id.desc())\
+                   .first()
 
         if record:
             for key, value in updated_data.items():

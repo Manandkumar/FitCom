@@ -1,16 +1,18 @@
-
-
 # ============================================================
-# FitCom - Body Composition Analytics Platform
-# Author: Anand Kumar
+# FitCom - Body Composition Analytics Platform (DB VERSION)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import os
-from sidebar import render_sidebar
 
-FILE_NAME = "fitcom_reports.csv"
+from sidebar import render_sidebar
+from storage import load_reports
+
+# ✅ CRITICAL (creates tables)
+from database import engine
+from models import Base
+Base.metadata.create_all(bind=engine)
 
 # ------------------------------------------------------------
 # Page Configuration
@@ -23,7 +25,7 @@ st.set_page_config(
 )
 
 # ------------------------------------------------------------
-# Sidebar Branding
+# Sidebar
 # ------------------------------------------------------------
 
 render_sidebar()
@@ -36,29 +38,40 @@ def calculate_fitness_score(row):
 
     score = 100
 
-    if row["BMI"] > 25:
+    if row.get("BMI", 0) > 25:
         score -= (row["BMI"] - 25) * 2
 
-    if row["BodyFat"] > 20:
+    if row.get("BodyFat", 0) > 20:
         score -= (row["BodyFat"] - 20) * 1.5
 
-    if row["VisceralFat"] > 10:
+    if row.get("VisceralFat", 0) > 10:
         score -= (row["VisceralFat"] - 10) * 2
 
-    if row["BodyWater"] < 50:
+    if row.get("BodyWater", 50) < 50:
         score -= (50 - row["BodyWater"]) * 1.5
 
     return max(0, round(score))
 
 
 # ------------------------------------------------------------
-# Load Dataset
+# LOAD DATA (DB)
 # ------------------------------------------------------------
 
-df = None
+data = load_reports()
 
-if os.path.exists(FILE_NAME):
-    df = pd.read_csv(FILE_NAME)
+if not data:
+    st.title("📊 FitCom Dashboard")
+    st.info("No reports available yet.")
+    st.stop()
+
+# Flatten DB → DataFrame
+df = pd.DataFrame(
+    [item for sublist in data.values() for item in sublist]
+)
+
+# Fix date
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df = df.dropna(subset=["Date"])
 
 # ============================================================
 # DASHBOARD
@@ -66,80 +79,76 @@ if os.path.exists(FILE_NAME):
 
 st.title("📊 FitCom Dashboard")
 
-if df is None or df.empty:
+# ------------------------------------------------------------
+# Select User
+# ------------------------------------------------------------
 
-    st.info("No reports available yet.")
+user = st.selectbox(
+    "Select User",
+    sorted(df["Name"].dropna().unique())
+)
 
-else:
+user_df = df[df["Name"] == user].sort_values("Date")
 
-    # ------------------------------------------------------------
-    # Select User
-    # ------------------------------------------------------------
+latest = user_df.iloc[-1]
 
-    user = st.selectbox(
-        "Select User",
-        df["Name"].unique()
-    )
+# ------------------------------------------------------------
+# Profile + Metrics
+# ------------------------------------------------------------
 
-    user_df = df[df["Name"] == user].sort_values("Date")
+col1, col2 = st.columns([1, 3])
 
-    latest = user_df.iloc[-1]
+with col1:
 
-    # ------------------------------------------------------------
-    # Profile + Metrics
-    # ------------------------------------------------------------
+    photo = latest.get("Photo", None)
 
-    col1, col2 = st.columns([1,3])
+    if photo and isinstance(photo, str) and os.path.exists(photo):
+        st.image(photo, width=150)
 
-    with col1:
+    st.write(f"**Name:** {latest.get('Name','')}")
+    st.write(f"**Date:** {latest.get('Date','')}")
 
-        if "Photo" in latest and pd.notna(latest["Photo"]):
+with col2:
 
-            if os.path.exists(latest["Photo"]):
+    st.subheader("Latest Body Metrics")
 
-                st.image(latest["Photo"], width=150)
+    c1, c2, c3, c4 = st.columns(4)
 
-        st.write(f"**Name:** {latest['Name']}")
-        st.write(f"**Date:** {latest['Date']}")
+    c1.metric("BMI", latest.get("BMI", "NA"))
+    c2.metric("Body Fat %", latest.get("BodyFat", "NA"))
+    c3.metric("Muscle Mass", latest.get("MuscleMass", "NA"))
+    c4.metric("Visceral Fat", latest.get("VisceralFat", "NA"))
 
-    with col2:
+    score = calculate_fitness_score(latest)
 
-        st.subheader("Latest Body Metrics")
+    st.subheader("Fitness Score")
 
-        c1, c2, c3, c4 = st.columns(4)
+    st.progress(score / 100)
+    st.metric("Score", f"{score}/100")
 
-        c1.metric("BMI", latest["BMI"])
-        c2.metric("Body Fat %", latest["BodyFat"])
-        c3.metric("Muscle Mass", latest["MuscleMass"])
-        c4.metric("Visceral Fat", latest["VisceralFat"])
+# ------------------------------------------------------------
+# User History
+# ------------------------------------------------------------
 
-        score = calculate_fitness_score(latest)
+st.subheader("User History")
 
-        st.subheader("Fitness Score")
+st.dataframe(user_df, use_container_width=True)
 
-        st.progress(score / 100)
+# ------------------------------------------------------------
+# Progress Chart
+# ------------------------------------------------------------
 
-        st.metric("Score", f"{score}/100")
+if len(user_df) > 1:
 
-    # ------------------------------------------------------------
-    # User History
-    # ------------------------------------------------------------
+    st.subheader("Progress Chart")
 
-    st.subheader("User History")
+    available_cols = [
+        col for col in ["Weight", "BodyFat", "MuscleMass"]
+        if col in user_df.columns
+    ]
 
-    st.dataframe(user_df)
-
-    # ------------------------------------------------------------
-    # Progress Chart
-    # ------------------------------------------------------------
-
-    if len(user_df) > 1:
-
-        st.subheader("Progress Chart")
-
-        st.line_chart(
-            user_df.set_index("Date")[["Weight", "BodyFat", "MuscleMass"]]
-        )
+    if available_cols:
+        st.line_chart(user_df.set_index("Date")[available_cols])
 
 # ------------------------------------------------------------
 # Most Improved Athlete
@@ -155,8 +164,8 @@ for athlete in df["Name"].unique():
 
     if len(athlete_df) > 1:
 
-        start_fat = athlete_df.iloc[0]["BodyFat"]
-        end_fat = athlete_df.iloc[-1]["BodyFat"]
+        start_fat = athlete_df.iloc[0].get("BodyFat", 0)
+        end_fat = athlete_df.iloc[-1].get("BodyFat", 0)
 
         improvement = start_fat - end_fat
 
@@ -176,17 +185,15 @@ if improvements:
     )
 
 else:
-
     st.info("Add multiple reports to calculate improvement.")
 
 
-# Temporaty 
-import os
-import streamlit as st
+# ------------------------------------------------------------
+# DEBUG (OPTIONAL - REMOVE LATER)
+# ------------------------------------------------------------
 
 st.write("Current working dir:", os.getcwd())
 
-# Check if DB exists here
 db_path = os.path.abspath("fitcom.db")
 st.write("Expected DB path:", db_path)
 st.write("Exists?", os.path.exists(db_path))
