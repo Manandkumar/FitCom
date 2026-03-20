@@ -178,3 +178,15 @@ if improvements:
 else:
 
     st.info("Add multiple reports to calculate improvement.")
+
+
+# Temporaty 
+import os
+import streamlit as st
+
+st.write("Current working dir:", os.getcwd())
+
+# Check if DB exists here
+db_path = os.path.abspath("fitcom.db")
+st.write("Expected DB path:", db_path)
+st.write("Exists?", os.path.exists(db_path))
