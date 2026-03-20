@@ -1,5 +1,5 @@
 # -------------------------------------------------------
-# FitCom - DB Storage Layer (FINAL STABLE VERSION 🔥)
+# FitCom - DB Storage Layer (FINAL VERSION 🔥)
 # Author: Anand Kumar
 # -------------------------------------------------------
 
@@ -9,18 +9,24 @@ import hashlib
 
 
 # =======================================================
-# 🔐 PASSWORD MANAGEMENT (NOT USED BUT KEPT SAFE)
+# 🔐 PASSWORD MANAGEMENT (OPTIONAL / LEGACY)
 # =======================================================
 
 def hash_password(password):
+    """Convert plain password into SHA256 hash"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 
 def set_user_password(name, password):
+    """
+    Update password for all records of a user
+    (Not used in current simplified login)
+    """
     db = SessionLocal()
     try:
         hashed = hash_password(password)
 
+        # Direct SQL update (efficient)
         db.query(Report).filter(Report.Name == name).update(
             {"Password": hashed},
             synchronize_session=False
@@ -37,6 +43,10 @@ def set_user_password(name, password):
 
 
 def get_user_password(name):
+    """
+    Fetch latest non-null password
+    (Used only if password-based auth is enabled)
+    """
     db = SessionLocal()
     try:
         record = (
@@ -54,12 +64,17 @@ def get_user_password(name):
 
 
 # =======================================================
-# 📊 REPORTS (BODY COMPOSITION)
+# 📊 REPORTS (BODY COMPOSITION DATA)
 # =======================================================
 
 def save_report(name, metrics):
+    """
+    Save new body composition record
+    Preserves password from last record (if exists)
+    """
     db = SessionLocal()
     try:
+        # Get latest record for password preservation
         existing = (
             db.query(Report)
             .filter(Report.Name == name)
@@ -82,13 +97,12 @@ def save_report(name, metrics):
 
 
 def load_reports():
+    """
+    Load all active reports and group by user
+    """
     db = SessionLocal()
     try:
-        reports = (
-            db.query(Report)
-            .filter(Report.IsDeleted == False)
-            .all()
-        )
+        reports = db.query(Report).filter(Report.IsDeleted == False).all()
 
         grouped = {}
 
@@ -97,11 +111,7 @@ def load_reports():
             data.pop("_sa_instance_state", None)
 
             name = data["Name"]
-
-            if name not in grouped:
-                grouped[name] = []
-
-            grouped[name].append(data)
+            grouped.setdefault(name, []).append(data)
 
         return grouped
 
@@ -110,16 +120,15 @@ def load_reports():
 
 
 def delete_record(name, index):
+    """
+    Soft delete a report record (keeps DB history)
+    """
     db = SessionLocal()
     try:
-        records = (
-            db.query(Report)
-            .filter(
-                Report.Name == name,
-                Report.IsDeleted == False
-            )
-            .all()
-        )
+        records = db.query(Report).filter(
+            Report.Name == name,
+            Report.IsDeleted == False
+        ).all()
 
         if 0 <= index < len(records):
             records[index].IsDeleted = True
@@ -133,6 +142,9 @@ def delete_record(name, index):
 
 
 def update_record(name, date, updated_data):
+    """
+    Update latest record for a given date
+    """
     db = SessionLocal()
     try:
         record = (
@@ -162,13 +174,20 @@ def update_record(name, date, updated_data):
 
 
 # =======================================================
-# 🔥 HIIT WORKOUT STORAGE (FIXED 🔥🔥🔥)
+# 🔥 HIIT WORKOUT STORAGE (FULL VERSION 🔥🔥🔥)
 # =======================================================
 
 def save_hiit_session(data):
     """
-    SAFE insert (only known columns)
-    Prevents Supabase mismatch errors
+    Save HIIT session safely
+
+    Supports:
+    - Calories 🔥
+    - Heart Rate ❤️
+    - Duration ⏱️
+    - Notes 📝
+
+    Works even if DB schema is partially missing fields
     """
     db = SessionLocal()
     try:
@@ -177,6 +196,12 @@ def save_hiit_session(data):
             Date=data.get("Date"),
             Workout=data.get("Workout"),
             Calories=data.get("Calories"),
+
+            # Optional fields (safe defaults)
+            HeartRate=data.get("HeartRate", None),
+            Duration=data.get("Duration", None),
+            Notes=data.get("Notes", None),
+
             IsDeleted=False
         )
 
@@ -193,24 +218,31 @@ def save_hiit_session(data):
 
 def load_hiit_sessions(name=None):
     """
-    SAFE load (only existing columns)
-    Prevents SQLAlchemy crash
+    Load HIIT sessions safely
+
+    Only selects known columns → avoids Supabase crash
     """
     db = SessionLocal()
     try:
+        # Select only required columns (avoids schema mismatch crash)
         query = db.query(
             HIITSession.id,
             HIITSession.Name,
             HIITSession.Date,
             HIITSession.Workout,
-            HIITSession.Calories
+            HIITSession.Calories,
+            HIITSession.HeartRate,
+            HIITSession.Duration,
+            HIITSession.Notes
         ).filter(HIITSession.IsDeleted == False)
 
+        # Optional user filter
         if name:
             query = query.filter(HIITSession.Name == name)
 
         rows = query.all()
 
+        # Convert to dictionary list (UI-friendly)
         result = []
         for r in rows:
             result.append({
@@ -218,7 +250,10 @@ def load_hiit_sessions(name=None):
                 "Name": r.Name,
                 "Date": r.Date,
                 "Workout": r.Workout,
-                "Calories": r.Calories
+                "Calories": r.Calories,
+                "HeartRate": r.HeartRate,
+                "Duration": r.Duration,
+                "Notes": r.Notes
             })
 
         return result
@@ -232,13 +267,14 @@ def load_hiit_sessions(name=None):
 
 
 def delete_hiit_session(session_id):
+    """
+    Soft delete HIIT session
+    """
     db = SessionLocal()
     try:
-        record = (
-            db.query(HIITSession)
-            .filter(HIITSession.id == session_id)
-            .first()
-        )
+        record = db.query(HIITSession).filter(
+            HIITSession.id == session_id
+        ).first()
 
         if record:
             record.IsDeleted = True
