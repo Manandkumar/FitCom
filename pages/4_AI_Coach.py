@@ -1,15 +1,11 @@
 # ============================================================
-# FitCom - AI Coach (Final Refactored Version)
-# Author: Anand Kumar
-#
-# Purpose:
-# Provide intelligent health insights based on latest report
+# FitCom - AI Coach (DB VERSION - STABLE)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
-import os
 
+from storage import load_reports
 from sidebar import render_sidebar
 from ui.theme import apply_theme
 from ui.components import page_header, section, card_start, card_end
@@ -21,22 +17,28 @@ from ui.components import page_header, section, card_start, card_end
 render_sidebar()
 apply_theme()
 
-FILE_NAME = "fitcom_reports.csv"
-
 page_header("AI Coach", "Personalized fitness insights")
 
 # -------------------------------------------------------
-# LOAD DATA
+# LOAD DATA (DB)
 # -------------------------------------------------------
 
-if not os.path.exists(FILE_NAME):
+data = load_reports()
+
+if not data:
     st.info("No reports available yet.")
     st.stop()
 
-df = pd.read_csv(FILE_NAME)
+# Flatten DB data
+df = pd.DataFrame(
+    [item for sublist in data.values() for item in sublist]
+)
 
 # Ensure date format
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+# Drop invalid dates
+df = df.dropna(subset=["Date"])
 
 # -------------------------------------------------------
 # USER SELECTION
@@ -79,38 +81,46 @@ st.dataframe(display_df, use_container_width=True)
 card_end()
 
 # -------------------------------------------------------
-# AI COACH LOGIC (PRESERVED)
+# AI COACH LOGIC (SAFE VERSION)
 # -------------------------------------------------------
 
 def ai_coach(row):
 
     tips = []
 
+    bmi = row.get("BMI", 0)
+    bodyfat = row.get("BodyFat", 0)
+    muscle = row.get("MuscleMass", 0)
+    water = row.get("BodyWater", 0)
+    visceral = row.get("VisceralFat", 0)
+    protein = row.get("ProteinRate", 0)
+
     # BMI check
-    if row["BMI"] > 25:
+    if bmi > 25:
         tips.append("BMI is high. Focus on fat loss and calorie deficit.")
 
     # Body fat
-    if row["BodyFat"] > 20:
+    if bodyfat > 20:
         tips.append("Body fat is above optimal. Add cardio and monitor diet.")
 
     # Muscle mass
-    if row["MuscleMass"] < 30:
+    if muscle < 30:
         tips.append("Muscle mass is low. Include strength training.")
 
     # Hydration
-    if row["BodyWater"] < 50:
+    if water < 50:
         tips.append("Hydration is low. Increase water intake.")
 
     # Visceral fat
-    if row["VisceralFat"] > 10:
+    if visceral > 10:
         tips.append("Visceral fat is high. Reduce sugar and processed food.")
 
     # Protein
-    if row["ProteinRate"] < 15:
+    if protein < 15:
         tips.append("Protein intake is low. Increase protein consumption.")
 
     return tips
+
 
 tips = ai_coach(latest)
 
@@ -131,7 +141,7 @@ else:
 card_end()
 
 # -------------------------------------------------------
-# QUICK SUMMARY INSIGHT (ADDED, NON-INTRUSIVE)
+# QUICK INSIGHT
 # -------------------------------------------------------
 
 section("Quick Insight")
@@ -141,16 +151,18 @@ card_start()
 if len(user_df) > 1:
     prev = user_df.iloc[-2]
 
-    weight_change = latest["Weight"] - prev["Weight"]
-    fat_change = latest["BodyFat"] - prev["BodyFat"]
+    weight_change = latest.get("Weight", 0) - prev.get("Weight", 0)
+    fat_change = latest.get("BodyFat", 0) - prev.get("BodyFat", 0)
 
     st.write(f"Weight Change: **{round(weight_change,2)} kg**")
     st.write(f"Body Fat Change: **{round(fat_change,2)} %**")
 
     if weight_change < 0:
         st.success("Positive trend in weight reduction 📉")
+    elif weight_change > 0:
+        st.warning("Weight increased. Review diet ⚠️")
     else:
-        st.info("Monitor weight trend")
+        st.info("Weight stable")
 
 else:
     st.info("Not enough data for trend insights")
