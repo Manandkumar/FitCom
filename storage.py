@@ -1,5 +1,5 @@
 # -------------------------------------------------------
-# FitCom - DB Storage Layer (FINAL PRODUCTION VERSION)
+# FitCom - DB Storage Layer (FINAL STABLE VERSION 🔥)
 # Author: Anand Kumar
 # -------------------------------------------------------
 
@@ -26,11 +26,10 @@ def set_user_password(name, password):
     try:
         hashed = hash_password(password)
 
-        records = (
-            db.query(Report)
-            .filter(Report.Name == name)
-            .all()
-        )
+        records = db.query(Report).filter(Report.Name == name).all()
+
+        if not records:
+            return
 
         for r in records:
             r.Password = hashed
@@ -43,22 +42,23 @@ def set_user_password(name, password):
 
 def get_user_password(name):
     """
-    Get latest password for user (FIXED 🔥)
-    Ensures correct password when multiple records exist
+    Get latest NON-NULL password (FIXED 🔥)
+    Prevents login loop issue
     """
     db = SessionLocal()
     try:
-        record = (
+        records = (
             db.query(Report)
             .filter(Report.Name == name)
-            .order_by(Report.id.desc())  # ✅ latest record
-            .first()
+            .order_by(Report.id.desc())
+            .all()
         )
 
-        if not record:
-            return None
+        for r in records:
+            if getattr(r, "Password", None):
+                return r.Password
 
-        return getattr(record, "Password", None)
+        return None
 
     finally:
         db.close()
@@ -69,9 +69,24 @@ def get_user_password(name):
 # =======================================================
 
 def save_report(name, metrics):
-    """Save new report"""
+    """
+    Save new report
+    🔥 FIX: Always preserve password from previous record
+    """
     db = SessionLocal()
     try:
+        # Get latest existing record
+        existing = (
+            db.query(Report)
+            .filter(Report.Name == name)
+            .order_by(Report.id.desc())
+            .first()
+        )
+
+        # 🔥 Preserve password
+        if existing and getattr(existing, "Password", None):
+            metrics["Password"] = existing.Password
+
         report = Report(**metrics)
         db.add(report)
         db.commit()
