@@ -83,7 +83,7 @@ if not reports:
 
 
 # =======================================================
-# 🔐 LOGIN SYSTEM
+# 🔐 LOGIN SYSTEM (HARD FIXED 🔥)
 # =======================================================
 
 if not st.session_state.logged_in:
@@ -103,10 +103,10 @@ if not st.session_state.logged_in:
 
         stored_password = get_user_password(selected_name)
 
-        # ---------------- FIRST TIME LOGIN ----------------
-        if not stored_password:
+        # 🔥 AUTO FIX: If password missing but user exists → force reset mode
+        if stored_password is None:
 
-            st.warning("⚠️ First time login — set your password")
+            st.warning("⚠️ First time / Reset login — set your password")
 
             new_pass = st.text_input("Set Password", type="password")
             confirm_pass = st.text_input("Confirm Password", type="password")
@@ -121,10 +121,16 @@ if not st.session_state.logged_in:
 
                 else:
                     set_user_password(selected_name, new_pass)
-                    st.success("✅ Password created! Please login.")
-                    st.rerun()
 
-        # ---------------- NORMAL LOGIN ----------------
+                    # 🔥 VERIFY IMMEDIATELY (CRITICAL FIX)
+                    check = get_user_password(selected_name)
+
+                    if check is None:
+                        st.error("❌ Password save failed. Check DB.")
+                    else:
+                        st.success("✅ Password created! Please login.")
+                        st.rerun()
+
         else:
 
             password = st.text_input("Enter Password", type="password")
@@ -134,14 +140,16 @@ if not st.session_state.logged_in:
                 if not password:
                     st.warning("Enter password")
 
-                elif hash_password(password) == stored_password:
-                    st.session_state.logged_in = True
-                    st.session_state.user = selected_name
-                    st.success("Login successful ✅")
-                    st.rerun()
-
                 else:
-                    st.error("❌ Incorrect password")
+                    hashed_input = hash_password(password)
+
+                    if hashed_input == stored_password:
+                        st.session_state.logged_in = True
+                        st.session_state.user = selected_name
+                        st.success("Login successful ✅")
+                        st.rerun()
+                    else:
+                        st.error("❌ Incorrect password")
 
 
 # =======================================================
@@ -166,10 +174,7 @@ else:
     # 🔐 CHANGE PASSWORD (DISABLED)
     # -------------------------------------------------------
 
-    # st.divider()
-
-    # if st.button("🔐 Change Password"):
-    #     pass
+    # (Intentionally removed)
 
     # -------------------------------------------------------
     # LOAD USER DATA
