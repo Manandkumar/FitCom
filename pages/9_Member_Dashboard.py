@@ -84,7 +84,7 @@ if not reports:
 
 
 # =======================================================
-# 🔐 LOGIN SYSTEM (FIXED 🔥)
+# 🔐 LOGIN SYSTEM (UNCHANGED + FIXED CHECK)
 # =======================================================
 
 if not st.session_state.logged_in:
@@ -104,10 +104,7 @@ if not st.session_state.logged_in:
 
         stored_password = get_user_password(selected_name)
 
-        # ---------------------------------------------------
-        # FIRST TIME PASSWORD SETUP
-        # ---------------------------------------------------
-
+        # ✅ FIXED (no loop issue)
         if stored_password is None:
 
             st.warning("⚠️ First time login — set your password")
@@ -127,10 +124,6 @@ if not st.session_state.logged_in:
                     set_user_password(selected_name, new_pass)
                     st.success("✅ Password created! Please login.")
                     st.rerun()
-
-        # ---------------------------------------------------
-        # NORMAL LOGIN
-        # ---------------------------------------------------
 
         else:
 
@@ -167,32 +160,45 @@ else:
         st.rerun()
 
     # -------------------------------------------------------
-    # CHANGE PASSWORD
+    # 🔐 CHANGE PASSWORD (TOGGLE LINK 🔥)
     # -------------------------------------------------------
 
     st.divider()
-    st.subheader("🔐 Change Password")
 
-    current_password = st.text_input("Current Password", type="password")
-    new_password = st.text_input("New Password", type="password")
-    confirm_password = st.text_input("Confirm Password", type="password")
+    if "show_change_password" not in st.session_state:
+        st.session_state.show_change_password = False
 
-    if st.button("Update Password"):
+    if st.button("🔐 Change Password"):
+        st.session_state.show_change_password = not st.session_state.show_change_password
 
-        stored_password = get_user_password(selected_name)
+    if st.session_state.show_change_password:
 
-        if hash_password(current_password) != stored_password:
-            st.error("❌ Current password incorrect")
+        st.subheader("🔐 Update Password")
 
-        elif new_password != confirm_password:
-            st.error("Passwords do not match")
+        current_password = st.text_input("Current Password", type="password", key="cp")
+        new_password = st.text_input("New Password", type="password", key="np")
+        confirm_password = st.text_input("Confirm Password", type="password", key="cnp")
 
-        elif not new_password:
-            st.warning("Enter new password")
+        if st.button("Update Password", key="update_btn"):
 
-        else:
-            set_user_password(selected_name, new_password)
-            st.success("✅ Password updated")
+            stored_password = get_user_password(selected_name)
+
+            if not current_password:
+                st.warning("Enter current password")
+
+            elif hash_password(current_password) != stored_password:
+                st.error("❌ Current password incorrect")
+
+            elif not new_password:
+                st.warning("Enter new password")
+
+            elif new_password != confirm_password:
+                st.error("Passwords do not match")
+
+            else:
+                set_user_password(selected_name, new_password)
+                st.success("✅ Password updated successfully")
+                st.session_state.show_change_password = False
 
     # -------------------------------------------------------
     # LOAD USER DATA
@@ -294,10 +300,6 @@ else:
         hiit_df["Date"] = pd.to_datetime(hiit_df["Date"], errors="coerce")
 
         st.dataframe(hiit_df.sort_values("Date", ascending=False))
-
-        # -------------------------------------------------------
-        # 🔥 STREAK
-        # -------------------------------------------------------
 
         st.subheader("🔥 Workout Streak")
 
