@@ -1,15 +1,11 @@
 # ============================================================
-# FitCom - Progress Tracking (Final Refactored Version)
-# Author: Anand Kumar
-#
-# Purpose:
-# Track member progress over time with clean UI
+# FitCom - Progress Tracking (DB VERSION - STABLE)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
-import os
 
+from storage import load_reports
 from sidebar import render_sidebar
 from ui.theme import apply_theme
 from ui.components import page_header, section, card_start, card_end
@@ -21,22 +17,28 @@ from ui.components import page_header, section, card_start, card_end
 render_sidebar()
 apply_theme()
 
-FILE_NAME = "fitcom_reports.csv"
-
 page_header("Progress Tracking", "Track member fitness journey over time")
 
 # -------------------------------------------------------
-# LOAD DATA
+# LOAD DATA (DB)
 # -------------------------------------------------------
 
-if not os.path.exists(FILE_NAME):
+data = load_reports()
+
+if not data:
     st.info("No reports available yet.")
     st.stop()
 
-df = pd.read_csv(FILE_NAME)
+# Flatten grouped data → DataFrame
+df = pd.DataFrame(
+    [item for sublist in data.values() for item in sublist]
+)
 
 # Convert date safely
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+# Drop invalid dates
+df = df.dropna(subset=["Date"])
 
 # -------------------------------------------------------
 # MEMBER SELECTION
@@ -98,7 +100,6 @@ section("Progress History")
 
 card_start()
 
-# Hide less useful columns for readability
 display_df = member_df.drop(
     columns=["Photo", "Age"],
     errors="ignore"
@@ -116,7 +117,6 @@ section("Progress Trends")
 
 card_start()
 
-# Allow user to choose metrics dynamically
 available_metrics = [
     col for col in [
         "Weight",
@@ -143,7 +143,7 @@ else:
 card_end()
 
 # -------------------------------------------------------
-# INSIGHT (OPTIONAL NICE TOUCH)
+# INSIGHT
 # -------------------------------------------------------
 
 section("Quick Insight")
@@ -153,16 +153,18 @@ card_start()
 if len(member_df) > 1:
     prev = member_df.iloc[-2]
 
-    weight_change = latest["Weight"] - prev["Weight"]
-    fat_change = latest["BodyFat"] - prev["BodyFat"]
+    weight_change = latest.get("Weight", 0) - prev.get("Weight", 0)
+    fat_change = latest.get("BodyFat", 0) - prev.get("BodyFat", 0)
 
     st.write(f"Weight Change: **{round(weight_change,2)} kg**")
     st.write(f"Body Fat Change: **{round(fat_change,2)} %**")
 
     if weight_change < 0:
         st.success("Good progress on weight reduction 💪")
+    elif weight_change > 0:
+        st.warning("Weight increased. Monitor diet ⚠️")
     else:
-        st.info("Monitor weight trend")
+        st.info("Weight stable")
 
 else:
     st.info("Not enough data for insights")
