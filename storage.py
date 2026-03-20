@@ -165,3 +165,40 @@ def delete_hiit_session(session_id):
 
     finally:
         db.close()
+
+# -------------------------------------------------------
+# PASSWORD MANAGEMENT
+# -------------------------------------------------------
+
+import hashlib
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def set_user_password(name, password):
+    db = SessionLocal()
+    try:
+        hashed = hash_password(password)
+
+        # Update ALL records for that user
+        records = db.query(Report).filter(Report.Name == name).all()
+
+        for r in records:
+            r.Password = hashed
+
+        db.commit()
+    finally:
+        db.close()
+
+
+def get_user_password(name):
+    db = SessionLocal()
+    try:
+        record = db.query(Report)\
+                   .filter(Report.Name == name)\
+                   .first()
+
+        return record.Password if record else None
+    finally:
+        db.close()

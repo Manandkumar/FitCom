@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Member Dashboard (FINAL DB VERSION)
+# FitCom - Member Dashboard (FINAL WITH STREAK 🔥)
 # ============================================================
 
 import streamlit as st
@@ -13,7 +13,6 @@ render_sidebar()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# 🔥 DB FUNCTIONS (FINAL)
 from storage import (
     load_reports,
     save_report,
@@ -21,6 +20,45 @@ from storage import (
     save_hiit_session,
     load_hiit_sessions
 )
+
+# -------------------------------------------------------
+# 🔥 STREAK CALCULATION FUNCTION
+# -------------------------------------------------------
+
+def calculate_streaks(df):
+
+    if df.empty:
+        return 0, 0
+
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df.dropna(subset=["Date"])
+
+    dates = sorted(df["Date"].dt.date.unique())
+
+    if not dates:
+        return 0, 0
+
+    current_streak = 1
+    longest_streak = 1
+
+    for i in range(1, len(dates)):
+        diff = (dates[i] - dates[i - 1]).days
+
+        if diff == 1:
+            current_streak += 1
+            longest_streak = max(longest_streak, current_streak)
+        else:
+            current_streak = 1
+
+    # Check if streak still active
+    today = datetime.today().date()
+    last_date = dates[-1]
+
+    if (today - last_date).days > 1:
+        current_streak = 0
+
+    return current_streak, longest_streak
+
 
 # -------------------------------------------------------
 # SESSION STATE
@@ -124,7 +162,7 @@ else:
     col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
 
     # -------------------------------------------------------
-    # ADD PROGRESS (WITH DATE INPUT)
+    # ADD PROGRESS
     # -------------------------------------------------------
 
     st.divider()
@@ -180,7 +218,7 @@ else:
         st.line_chart(df.set_index("Date")["MuscleMass"])
 
     # -------------------------------------------------------
-    # HIIT TRACKER (DB VERSION)
+    # HIIT TRACKER
     # -------------------------------------------------------
 
     st.divider()
@@ -225,7 +263,7 @@ else:
             st.rerun()
 
     # -------------------------------------------------------
-    # HIIT HISTORY (DB)
+    # HIIT HISTORY
     # -------------------------------------------------------
 
     st.subheader("📊 HIIT History")
@@ -241,16 +279,35 @@ else:
 
         st.dataframe(hiit_df, use_container_width=True)
 
-        # HIIT Trend
         if "Calories" in hiit_df.columns:
             st.subheader("📈 HIIT Calories Trend")
             st.line_chart(hiit_df.set_index("Date")["Calories"])
 
+        # -------------------------------------------------------
+        # 🔥 WORKOUT STREAK DISPLAY
+        # -------------------------------------------------------
+
+        st.subheader("🔥 Workout Streak")
+
+        current_streak, longest_streak = calculate_streaks(hiit_df)
+
+        col1, col2 = st.columns(2)
+
+        col1.metric("🔥 Current Streak", f"{current_streak} days")
+        col2.metric("🏆 Longest Streak", f"{longest_streak} days")
+
+        if current_streak >= 7:
+            st.success("🔥 Amazing consistency! You're on fire!")
+        elif current_streak >= 3:
+            st.info("💪 Good momentum! Keep going!")
+        elif current_streak == 0:
+            st.warning("⚠️ Streak broken. Start again today!")
+
     else:
-        st.info("No HIIT sessions yet")
+        st.info("Start logging workouts to build your streak 🔥")
 
     # -------------------------------------------------------
-    # DELETE RECORD (SOFT DELETE)
+    # DELETE RECORD
     # -------------------------------------------------------
 
     st.subheader("🗑️ Delete Record")
