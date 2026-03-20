@@ -84,7 +84,7 @@ if not reports:
 
 
 # =======================================================
-# 🔐 LOGIN SYSTEM (FINAL)
+# 🔐 LOGIN SYSTEM (FIXED 🔥)
 # =======================================================
 
 if not st.session_state.logged_in:
@@ -100,16 +100,15 @@ if not st.session_state.logged_in:
         placeholder="Choose your name..."
     )
 
-    password = st.text_input("Enter Password", type="password")
-
     if selected_name:
 
         stored_password = get_user_password(selected_name)
 
-        # ---------------------------
+        # ---------------------------------------------------
         # FIRST TIME PASSWORD SETUP
-        # ---------------------------
-        if not stored_password:
+        # ---------------------------------------------------
+
+        if stored_password is None:
 
             st.warning("⚠️ First time login — set your password")
 
@@ -126,24 +125,30 @@ if not st.session_state.logged_in:
 
                 else:
                     set_user_password(selected_name, new_pass)
-                    st.success("✅ Password created! Login again.")
+                    st.success("✅ Password created! Please login.")
                     st.rerun()
 
-        # ---------------------------
+        # ---------------------------------------------------
         # NORMAL LOGIN
-        # ---------------------------
+        # ---------------------------------------------------
+
         else:
+
+            password = st.text_input("Enter Password", type="password")
 
             if st.button("Login"):
 
-                if hash_password(password) != stored_password:
-                    st.error("❌ Incorrect password")
+                if not password:
+                    st.warning("Enter password")
 
-                else:
+                elif hash_password(password) == stored_password:
                     st.session_state.logged_in = True
                     st.session_state.user = selected_name
                     st.success("Login successful ✅")
                     st.rerun()
+
+                else:
+                    st.error("❌ Incorrect password")
 
 
 # =======================================================
@@ -181,6 +186,9 @@ else:
 
         elif new_password != confirm_password:
             st.error("Passwords do not match")
+
+        elif not new_password:
+            st.warning("Enter new password")
 
         else:
             set_user_password(selected_name, new_password)
@@ -233,9 +241,9 @@ else:
             "Date": progress_date.strftime("%Y-%m-%d"),
             "Height": height,
             "Gender": gender,
-            "Weight": weight,
-            "BodyFat": bodyfat,
-            "MuscleMass": muscle_mass
+            "Weight": float(weight),
+            "BodyFat": float(bodyfat),
+            "MuscleMass": float(muscle_mass)
         })
 
         st.success("Saved!")
@@ -247,7 +255,10 @@ else:
 
     st.subheader("📈 Progress")
 
-    st.line_chart(df.set_index("Date")[["Weight", "BodyFat", "MuscleMass"]])
+    available_cols = [col for col in ["Weight", "BodyFat", "MuscleMass"] if col in df.columns]
+
+    if available_cols:
+        st.line_chart(df.set_index("Date")[available_cols])
 
     # -------------------------------------------------------
     # HIIT
@@ -261,13 +272,15 @@ else:
         workout = st.selectbox("Workout", ["Run", "Cycle", "HIIT"])
         calories = st.number_input("Calories", 0)
 
-        if st.form_submit_button("Save"):
+        submitted = st.form_submit_button("Save")
+
+        if submitted:
 
             save_hiit_session({
                 "Name": selected_name,
                 "Date": hiit_date.strftime("%Y-%m-%d"),
                 "Workout": workout,
-                "Calories": calories
+                "Calories": int(calories)
             })
 
             st.success("Saved!")
@@ -278,12 +291,15 @@ else:
     if hiit_data:
 
         hiit_df = pd.DataFrame(hiit_data)
-        hiit_df["Date"] = pd.to_datetime(hiit_df["Date"])
+        hiit_df["Date"] = pd.to_datetime(hiit_df["Date"], errors="coerce")
 
-        st.dataframe(hiit_df)
+        st.dataframe(hiit_df.sort_values("Date", ascending=False))
 
-        # STREAK
-        st.subheader("🔥 Streak")
+        # -------------------------------------------------------
+        # 🔥 STREAK
+        # -------------------------------------------------------
+
+        st.subheader("🔥 Workout Streak")
 
         current, longest = calculate_streaks(hiit_df)
 
