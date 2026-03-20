@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Member Dashboard (DB VERSION - STABLE)
+# FitCom - Member Dashboard (ENHANCED WITH DATE INPUTS)
 # ============================================================
 
 import streamlit as st
@@ -16,7 +16,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from storage import load_reports, save_report, delete_record
 
 # -------------------------------------------------------
-# HIIT STORAGE (KEEP CSV - OPTIONAL UPGRADE LATER)
+# HIIT STORAGE (CSV for now)
 # -------------------------------------------------------
 
 HIIT_FILE = "hiit_data.csv"
@@ -103,7 +103,7 @@ else:
         st.rerun()
 
     # -------------------------------------------------------
-    # LOAD USER DATA (SORTED)
+    # LOAD USER DATA
     # -------------------------------------------------------
 
     user_data = reports[selected_name]
@@ -113,7 +113,7 @@ else:
         st.info("No reports available")
         st.stop()
 
-    # ✅ FIX: ensure date ordering
+    # Ensure proper date handling
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df.sort_values("Date")
 
@@ -136,11 +136,14 @@ else:
     col3.metric("Muscle Mass", f"{latest.get('MuscleMass', 0)} kg")
 
     # -------------------------------------------------------
-    # ADD PROGRESS
+    # ADD PROGRESS (WITH DATE INPUT 🔥)
     # -------------------------------------------------------
 
     st.divider()
     st.subheader("➕ Add New Progress")
+
+    # 🔥 NEW: Allow user to select date (backdated entry support)
+    progress_date = st.date_input("Select Progress Date", value=datetime.today())
 
     col1, col2 = st.columns(2)
 
@@ -158,7 +161,7 @@ else:
 
         new_record = {
             "Name": selected_name,
-            "Date": datetime.now().strftime("%Y-%m-%d"),
+            "Date": progress_date.strftime("%Y-%m-%d"),  # 🔥 FIXED
             "Height": float(height),
             "Gender": gender,
             "Weight": float(weight),
@@ -175,7 +178,7 @@ else:
         st.rerun()
 
     # -------------------------------------------------------
-    # PROGRESS CHARTS (SAFE)
+    # PROGRESS CHARTS
     # -------------------------------------------------------
 
     st.subheader("📈 Progress")
@@ -190,13 +193,16 @@ else:
         st.line_chart(df.set_index("Date")["MuscleMass"])
 
     # -------------------------------------------------------
-    # HIIT TRACKER
+    # HIIT TRACKER (WITH DATE INPUT 🔥)
     # -------------------------------------------------------
 
     st.divider()
     st.subheader("🔥 HIIT Workout Tracker")
 
     with st.form("hiit_form"):
+
+        # 🔥 NEW: Backdated workout support
+        hiit_date = st.date_input("Workout Date", value=datetime.today())
 
         col1, col2 = st.columns(2)
 
@@ -219,7 +225,7 @@ else:
 
             hiit_record = {
                 "Name": selected_name,
-                "Date": datetime.now().strftime("%Y-%m-%d"),
+                "Date": hiit_date.strftime("%Y-%m-%d"),  # 🔥 FIXED
                 "Workout": workout_type,
                 "Duration": duration,
                 "Calories": calories,
@@ -233,7 +239,7 @@ else:
             st.rerun()
 
     # -------------------------------------------------------
-    # HIIT HISTORY
+    # HIIT HISTORY (SORT FIX)
     # -------------------------------------------------------
 
     st.subheader("📊 HIIT History")
@@ -245,7 +251,13 @@ else:
         user_hiit = hiit_df[hiit_df["Name"] == selected_name]
 
         if not user_hiit.empty:
-            st.dataframe(user_hiit.sort_values("Date", ascending=False), use_container_width=True)
+
+            # 🔥 FIX: Proper date sorting
+            user_hiit["Date"] = pd.to_datetime(user_hiit["Date"], errors="coerce")
+            user_hiit = user_hiit.sort_values("Date", ascending=False)
+
+            st.dataframe(user_hiit, use_container_width=True)
+
         else:
             st.info("No HIIT sessions yet")
 
@@ -253,45 +265,7 @@ else:
         st.info("No HIIT data available")
 
     # -------------------------------------------------------
-    # HIIT TREND
-    # -------------------------------------------------------
-
-    if not hiit_df.empty:
-
-        user_hiit = hiit_df[hiit_df["Name"] == selected_name]
-
-        if not user_hiit.empty:
-            st.subheader("📈 HIIT Calories Trend")
-            st.line_chart(user_hiit["Calories"])
-
-    # -------------------------------------------------------
-    # WEEKLY INSIGHTS
-    # -------------------------------------------------------
-
-    st.subheader("🧠 Weekly Insights")
-
-    if len(df) > 1:
-
-        recent = df.tail(7)
-
-        weight_change = recent["Weight"].iloc[-1] - recent["Weight"].iloc[0]
-
-        if weight_change < -1:
-            st.info("🔥 Great fat loss this week")
-        elif weight_change > 1:
-            st.warning("⚠️ Weight increased")
-        else:
-            st.info("👍 Weight stable")
-
-    # -------------------------------------------------------
-    # FULL DATA
-    # -------------------------------------------------------
-
-    st.subheader("📋 Full Report")
-    st.dataframe(df_display, use_container_width=True)
-
-    # -------------------------------------------------------
-    # DELETE RECORD
+    # DELETE RECORD (UNCHANGED - SOFT DELETE)
     # -------------------------------------------------------
 
     st.subheader("🗑️ Delete Record")
