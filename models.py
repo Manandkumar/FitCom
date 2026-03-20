@@ -1,8 +1,8 @@
 # -------------------------------------------------------
-# FitCom - Database Models (Optimized)
+# FitCom - Database Models (Optimized + Soft Delete)
 # -------------------------------------------------------
 
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, Boolean
 from database import Base
 
 
@@ -17,9 +17,9 @@ class Report(Base):
     # ---------------------------------------------------
     # USER INFO
     # ---------------------------------------------------
-    Name = Column(String, index=True)   # 🔥 index added
+    Name = Column(String, index=True)
     Gender = Column(String)
-    Date = Column(String, index=True)   # 🔥 index added
+    Date = Column(String, index=True)
     Photo = Column(String)
 
     # ---------------------------------------------------
@@ -74,3 +74,8 @@ class Report(Base):
     # TARGET
     # ---------------------------------------------------
     IdealBodyWeight = Column(Float)
+
+    # ---------------------------------------------------
+    # SOFT DELETE (NEW 🔥)
+    # ---------------------------------------------------
+    IsDeleted = Column(Boolean, default=False, index=True)
