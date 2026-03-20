@@ -1,111 +1,84 @@
-# ============================================================
-# FitCom - Data Storage Module (CSV Based)
-# ============================================================
+# -------------------------------------------------------
+# FitCom - DB Storage Layer
+# -------------------------------------------------------
 
-import pandas as pd
-import os
+from database import SessionLocal
+from models import Report
 
-FILE_NAME = "fitcom_reports.csv"
-
-
-# ------------------------------------------------------------
-# Save Report
-# ------------------------------------------------------------
-# Adds a new record to CSV
-# Ensures Name column exists
-# ------------------------------------------------------------
+# -------------------------------------------------------
+# SAVE REPORT
+# -------------------------------------------------------
 
 def save_report(name, metrics):
-
-    # Ensure Name is always present
-    metrics["Name"] = name
-
-    new_row = pd.DataFrame([metrics])
-
+    db = SessionLocal()
     try:
-        if os.path.exists(FILE_NAME):
-            existing = pd.read_csv(FILE_NAME)
-            df = pd.concat([existing, new_row], ignore_index=True)
-        else:
-            df = new_row
-
-        df.to_csv(FILE_NAME, index=False)
-
-    except Exception as e:
-        print("Error saving report:", e)
+        report = Report(**metrics)
+        db.add(report)
+        db.commit()
+    finally:
+        db.close()
 
 
-# ------------------------------------------------------------
-# Load Reports (Grouped by Name)
-# ------------------------------------------------------------
-# Returns:
-# {
-#   "Anand": [ {...}, {...} ],
-#   "Rahul": [ {...} ]
-# }
-# ------------------------------------------------------------
+# -------------------------------------------------------
+# LOAD REPORTS
+# -------------------------------------------------------
 
 def load_reports():
-
-    if not os.path.exists(FILE_NAME):
-        return {}
-
+    db = SessionLocal()
     try:
-        df = pd.read_csv(FILE_NAME)
-
-        # Safety checks
-        if df.empty or "Name" not in df.columns:
-            return {}
+        reports = db.query(Report).all()
 
         grouped = {}
 
-        for name, group in df.groupby("Name"):
-            grouped[name] = group.to_dict(orient="records")
+        for r in reports:
+            data = r.__dict__.copy()
+            data.pop("_sa_instance_state", None)
+
+            name = data["Name"]
+
+            if name not in grouped:
+                grouped[name] = []
+
+            grouped[name].append(data)
 
         return grouped
-
-    except Exception as e:
-        print("Error loading reports:", e)
-        return {}
+    finally:
+        db.close()
 
 
-# ------------------------------------------------------------
-# Delete Record (by index for a specific user)
-# ------------------------------------------------------------
-# Parameters:
-# name  -> user name
-# index -> index within user's records (not global index)
-# ------------------------------------------------------------
+# -------------------------------------------------------
+# DELETE RECORD
+# -------------------------------------------------------
 
 def delete_record(name, index):
-
-    if not os.path.exists(FILE_NAME):
-        return
-
+    db = SessionLocal()
     try:
-        df = pd.read_csv(FILE_NAME)
+        records = db.query(Report).filter(Report.Name == name).all()
 
-        if df.empty or "Name" not in df.columns:
-            return
+        if 0 <= index < len(records):
+            db.delete(records[index])
+            db.commit()
+    finally:
+        db.close()
 
-        # Filter user records
-        user_df = df[df["Name"] == name]
 
-        if user_df.empty:
-            return
+# -------------------------------------------------------
+# UPDATE RECORD
+# -------------------------------------------------------
 
-        # Validate index
-        if index < 0 or index >= len(user_df):
-            return
+def update_record(name, date, updated_data):
+    db = SessionLocal()
+    try:
+        record = db.query(Report).filter(
+            Report.Name == name,
+            Report.Date == date
+        ).first()
 
-        # Get actual index in full dataframe
-        actual_index = user_df.index[index]
+        if record:
+            for key, value in updated_data.items():
+                if hasattr(record, key):
+                    setattr(record, key, value)
 
-        # Drop record
-        df = df.drop(actual_index).reset_index(drop=True)
-
-        # Save back
-        df.to_csv(FILE_NAME, index=False)
-
-    except Exception as e:
-        print("Error deleting record:", e)
+            db.commit()
+    finally:
+        db.close()
