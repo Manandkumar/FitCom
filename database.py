@@ -1,5 +1,5 @@
 # -------------------------------------------------------
-# FitCom - Supabase Database Configuration (FINAL)
+# FitCom - Supabase Database Configuration (FIXED)
 # -------------------------------------------------------
 
 import streamlit as st
@@ -7,13 +7,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # -------------------------------------------------------
-# LOAD DATABASE URL FROM STREAMLIT SECRETS
+# DATABASE URL
 # -------------------------------------------------------
 
 DATABASE_URL = st.secrets["DATABASE_URL"]
 
 # -------------------------------------------------------
-# ENGINE (POSTGRESQL)
+# ENGINE
 # -------------------------------------------------------
 
 engine = create_engine(
@@ -32,14 +32,7 @@ SessionLocal = sessionmaker(
 )
 
 # -------------------------------------------------------
-# BASE MODEL
+# BASE
 # -------------------------------------------------------
 
 Base = declarative_base()
-
-# -------------------------------------------------------
-# AUTO CREATE TABLES
-# -------------------------------------------------------
-
-from models import Base
-Base.metadata.create_all(bind=engine)
