@@ -201,7 +201,7 @@ def load_hiit_sessions(name=None):
         if name:
             query = query.filter(HIITSession.Name == name)
 
-        sessions = query.order_by(HIITSession.Date).all()
+        sessions = query.all()
 
         result = []
 
