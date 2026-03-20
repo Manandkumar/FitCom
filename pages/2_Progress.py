@@ -1,5 +1,6 @@
 # ============================================================
-# FitCom - Progress Tracking (DB VERSION - STABLE)
+# FitCom - Progress Tracking (ENHANCED WITH DATE FILTER)
+# Author: Anand Kumar
 # ============================================================
 
 import streamlit as st
@@ -11,7 +12,7 @@ from ui.theme import apply_theme
 from ui.components import page_header, section, card_start, card_end
 
 # -------------------------------------------------------
-# INIT
+# INIT UI
 # -------------------------------------------------------
 
 render_sidebar()
@@ -20,8 +21,10 @@ apply_theme()
 page_header("Progress Tracking", "Track member fitness journey over time")
 
 # -------------------------------------------------------
-# LOAD DATA (DB)
+# LOAD DATA FROM DATABASE
 # -------------------------------------------------------
+# We always use DB (no CSV anymore)
+# load_reports() already excludes soft-deleted records
 
 data = load_reports()
 
@@ -29,15 +32,15 @@ if not data:
     st.info("No reports available yet.")
     st.stop()
 
-# Flatten grouped data → DataFrame
+# Convert grouped dict → flat dataframe
 df = pd.DataFrame(
     [item for sublist in data.values() for item in sublist]
 )
 
-# Convert date safely
+# Convert Date column safely (important for sorting & filtering)
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
-# Drop invalid dates
+# Drop invalid or corrupted date rows
 df = df.dropna(subset=["Date"])
 
 # -------------------------------------------------------
@@ -58,9 +61,10 @@ selected_member = st.selectbox(
 card_end()
 
 # -------------------------------------------------------
-# FILTER DATA
+# FILTER DATA FOR SELECTED MEMBER
 # -------------------------------------------------------
 
+# Always sort → ensures latest record logic works correctly
 member_df = df[df["Name"] == selected_member].sort_values("Date")
 
 if member_df.empty:
@@ -68,8 +72,36 @@ if member_df.empty:
     st.stop()
 
 # -------------------------------------------------------
+# 🔥 DATE FILTER (NEW FEATURE)
+# -------------------------------------------------------
+# Allows viewing:
+# 1. Full history
+# 2. Specific day snapshot
+
+section("Filter by Date")
+
+card_start()
+
+# Convert dates to string for UI dropdown
+date_options = member_df["Date"].dt.strftime("%Y-%m-%d").unique()
+
+selected_date = st.selectbox(
+    "Select Date (Optional)",
+    ["All"] + sorted(date_options, reverse=True)
+)
+
+card_end()
+
+# Apply filter only if user selects a specific date
+if selected_date != "All":
+    member_df = member_df[
+        member_df["Date"].dt.strftime("%Y-%m-%d") == selected_date
+    ]
+
+# -------------------------------------------------------
 # SUMMARY METRICS
 # -------------------------------------------------------
+# Always show latest record from filtered data
 
 section("Latest Snapshot")
 
@@ -95,6 +127,7 @@ with col3:
 # -------------------------------------------------------
 # HISTORY TABLE
 # -------------------------------------------------------
+# Clean table view (hide unnecessary columns)
 
 section("Progress History")
 
@@ -112,6 +145,7 @@ card_end()
 # -------------------------------------------------------
 # TREND VISUALIZATION
 # -------------------------------------------------------
+# Dynamic metric selection → flexible charts
 
 section("Progress Trends")
 
@@ -143,14 +177,16 @@ else:
 card_end()
 
 # -------------------------------------------------------
-# INSIGHT
+# INSIGHT ENGINE
 # -------------------------------------------------------
+# Simple but effective trend insight (latest vs previous)
 
 section("Quick Insight")
 
 card_start()
 
 if len(member_df) > 1:
+
     prev = member_df.iloc[-2]
 
     weight_change = latest.get("Weight", 0) - prev.get("Weight", 0)
@@ -159,6 +195,7 @@ if len(member_df) > 1:
     st.write(f"Weight Change: **{round(weight_change,2)} kg**")
     st.write(f"Body Fat Change: **{round(fat_change,2)} %**")
 
+    # Interpretation logic
     if weight_change < 0:
         st.success("Good progress on weight reduction 💪")
     elif weight_change > 0:
