@@ -1,30 +1,24 @@
 # -------------------------------------------------------
-# FitCom - Database Configuration (PRODUCTION READY)
+# FitCom - Supabase Database Configuration (FINAL)
 # -------------------------------------------------------
 
-import os
+import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # -------------------------------------------------------
-# PATH SETUP
+# LOAD DATABASE URL FROM STREAMLIT SECRETS
 # -------------------------------------------------------
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "fitcom.db")
-
-print(f"📁 DB PATH: {DB_PATH}")
-
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+DATABASE_URL = st.secrets["DATABASE_URL"]
 
 # -------------------------------------------------------
-# ENGINE
+# ENGINE (POSTGRESQL)
 # -------------------------------------------------------
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    echo=False  # 🔥 set True only for debugging SQL logs
+    pool_pre_ping=True
 )
 
 # -------------------------------------------------------
@@ -44,9 +38,8 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 # -------------------------------------------------------
-# AUTO CREATE TABLES (CRITICAL FIX)
+# AUTO CREATE TABLES
 # -------------------------------------------------------
 
 from models import Base
-
 Base.metadata.create_all(bind=engine)
