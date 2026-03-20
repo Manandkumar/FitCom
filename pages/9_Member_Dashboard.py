@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Member Dashboard (FINAL FIXED AUTH 🔥)
+# FitCom - Member Dashboard (NAME = PASSWORD 🔥)
 # ============================================================
 
 import streamlit as st
@@ -18,10 +18,7 @@ from storage import (
     save_report,
     delete_record,
     save_hiit_session,
-    load_hiit_sessions,
-    get_user_password,
-    set_user_password,
-    hash_password
+    load_hiit_sessions
 )
 
 # -------------------------------------------------------
@@ -37,16 +34,11 @@ def calculate_streaks(df):
 
     dates = sorted(df["Date"].dt.date.unique())
 
-    if not dates:
-        return 0, 0
-
     current_streak = 1
     longest_streak = 1
 
     for i in range(1, len(dates)):
-        diff = (dates[i] - dates[i - 1]).days
-
-        if diff == 1:
+        if (dates[i] - dates[i - 1]).days == 1:
             current_streak += 1
             longest_streak = max(longest_streak, current_streak)
         else:
@@ -83,7 +75,7 @@ if not reports:
 
 
 # =======================================================
-# 🔐 LOGIN SYSTEM (FINAL FIX)
+# 🔐 SIMPLE LOGIN (NAME = PASSWORD)
 # =======================================================
 
 if not st.session_state.logged_in:
@@ -99,57 +91,24 @@ if not st.session_state.logged_in:
         placeholder="Choose your name..."
     )
 
-    if selected_name:
+    password = st.text_input("Enter Password", type="password")
 
-        stored_password = get_user_password(selected_name)
+    if st.button("Login"):
 
-        # ---------------- FIRST TIME / BROKEN STATE ----------------
-        if stored_password is None:
+        if not selected_name:
+            st.warning("Select your name")
 
-            st.warning("⚠️ First time / Reset login — set your password")
+        elif not password:
+            st.warning("Enter password")
 
-            new_pass = st.text_input("Set Password", type="password")
-            confirm_pass = st.text_input("Confirm Password", type="password")
+        elif password.strip().lower() == selected_name.strip().lower():
+            st.session_state.logged_in = True
+            st.session_state.user = selected_name
+            st.success("Login successful ✅")
+            st.rerun()
 
-            if st.button("Create Password"):
-
-                if not new_pass:
-                    st.warning("Enter password")
-
-                elif new_pass != confirm_pass:
-                    st.error("Passwords do not match")
-
-                else:
-                    # 🔥 Save password
-                    set_user_password(selected_name, new_pass)
-
-                    # 🔥 HARD VERIFY (THIS IS THE KEY FIX)
-                    verify = get_user_password(selected_name)
-
-                    if verify is None:
-                        st.error("❌ Password not saved. DB issue.")
-                    else:
-                        st.success("✅ Password created! Please login.")
-                        st.rerun()
-
-        # ---------------- NORMAL LOGIN ----------------
         else:
-
-            password = st.text_input("Enter Password", type="password")
-
-            if st.button("Login"):
-
-                if not password:
-                    st.warning("Enter password")
-
-                else:
-                    if hash_password(password) == stored_password:
-                        st.session_state.logged_in = True
-                        st.session_state.user = selected_name
-                        st.success("Login successful ✅")
-                        st.rerun()
-                    else:
-                        st.error("❌ Incorrect password")
+            st.error("❌ Incorrect password (Hint: it's your name 😉)")
 
 
 # =======================================================
@@ -231,10 +190,10 @@ else:
 
     st.subheader("📈 Progress")
 
-    available_cols = [col for col in ["Weight", "BodyFat", "MuscleMass"] if col in df.columns]
+    cols = [c for c in ["Weight", "BodyFat", "MuscleMass"] if c in df.columns]
 
-    if available_cols:
-        st.line_chart(df.set_index("Date")[available_cols])
+    if cols:
+        st.line_chart(df.set_index("Date")[cols])
 
     # -------------------------------------------------------
     # HIIT
@@ -248,9 +207,7 @@ else:
         workout = st.selectbox("Workout", ["Run", "Cycle", "HIIT"])
         calories = st.number_input("Calories", 0)
 
-        submitted = st.form_submit_button("Save")
-
-        if submitted:
+        if st.form_submit_button("Save"):
 
             save_hiit_session({
                 "Name": selected_name,
