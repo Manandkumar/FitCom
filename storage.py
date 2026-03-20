@@ -9,56 +9,45 @@ import hashlib
 
 
 # =======================================================
-# 🔐 PASSWORD MANAGEMENT
+# 🔐 PASSWORD MANAGEMENT (NOT USED BUT KEPT SAFE)
 # =======================================================
 
 def hash_password(password):
-    """Convert plain password into hashed version"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 
 def set_user_password(name, password):
-    """
-    Set/update password for a user
-    Updates ALL records for consistency
-    """
     db = SessionLocal()
     try:
         hashed = hash_password(password)
 
-        records = db.query(Report).filter(Report.Name == name).all()
-
-        if not records:
-            return
-
-        for r in records:
-            r.Password = hashed
+        db.query(Report).filter(Report.Name == name).update(
+            {"Password": hashed},
+            synchronize_session=False
+        )
 
         db.commit()
+
+    except Exception as e:
+        print("❌ Password update error:", e)
+        db.rollback()
 
     finally:
         db.close()
 
 
 def get_user_password(name):
-    """
-    Get latest NON-NULL password (FIXED 🔥)
-    Prevents login loop issue
-    """
     db = SessionLocal()
     try:
-        records = (
-            db.query(Report)
+        record = (
+            db.query(Report.Password)
             .filter(Report.Name == name)
+            .filter(Report.Password != None)
             .order_by(Report.id.desc())
-            .all()
+            .first()
         )
 
-        for r in records:
-            if getattr(r, "Password", None):
-                return r.Password
-
-        return None
+        return record[0] if record else None
 
     finally:
         db.close()
@@ -69,13 +58,8 @@ def get_user_password(name):
 # =======================================================
 
 def save_report(name, metrics):
-    """
-    Save new report
-    🔥 FIX: Always preserve password from previous record
-    """
     db = SessionLocal()
     try:
-        # Get latest existing record
         existing = (
             db.query(Report)
             .filter(Report.Name == name)
@@ -83,26 +67,26 @@ def save_report(name, metrics):
             .first()
         )
 
-        # 🔥 Preserve password
         if existing and getattr(existing, "Password", None):
             metrics["Password"] = existing.Password
 
-        report = Report(**metrics)
-        db.add(report)
+        db.add(Report(**metrics))
         db.commit()
+
+    except Exception as e:
+        print("❌ Save report error:", e)
+        db.rollback()
 
     finally:
         db.close()
 
 
 def load_reports():
-    """Load ACTIVE reports only"""
     db = SessionLocal()
     try:
         reports = (
             db.query(Report)
             .filter(Report.IsDeleted == False)
-            .order_by(Report.Date)
             .all()
         )
 
@@ -126,7 +110,6 @@ def load_reports():
 
 
 def delete_record(name, index):
-    """Soft delete report"""
     db = SessionLocal()
     try:
         records = (
@@ -135,7 +118,6 @@ def delete_record(name, index):
                 Report.Name == name,
                 Report.IsDeleted == False
             )
-            .order_by(Report.Date)
             .all()
         )
 
@@ -143,12 +125,14 @@ def delete_record(name, index):
             records[index].IsDeleted = True
             db.commit()
 
+    except Exception as e:
+        print("❌ Delete error:", e)
+
     finally:
         db.close()
 
 
 def update_record(name, date, updated_data):
-    """Update latest record for given date"""
     db = SessionLocal()
     try:
         record = (
@@ -169,55 +153,85 @@ def update_record(name, date, updated_data):
 
             db.commit()
 
+    except Exception as e:
+        print("❌ Update error:", e)
+        db.rollback()
+
     finally:
         db.close()
 
 
 # =======================================================
-# 🔥 HIIT WORKOUT STORAGE
+# 🔥 HIIT WORKOUT STORAGE (FIXED 🔥🔥🔥)
 # =======================================================
 
 def save_hiit_session(data):
-    """Save HIIT session"""
+    """
+    SAFE insert (only known columns)
+    Prevents Supabase mismatch errors
+    """
     db = SessionLocal()
     try:
-        session = HIITSession(**data)
+        session = HIITSession(
+            Name=data.get("Name"),
+            Date=data.get("Date"),
+            Workout=data.get("Workout"),
+            Calories=data.get("Calories"),
+            IsDeleted=False
+        )
+
         db.add(session)
         db.commit()
+
+    except Exception as e:
+        print("❌ HIIT SAVE ERROR:", e)
+        db.rollback()
 
     finally:
         db.close()
 
 
 def load_hiit_sessions(name=None):
-    """Load HIIT sessions (optional user filter)"""
+    """
+    SAFE load (only existing columns)
+    Prevents SQLAlchemy crash
+    """
     db = SessionLocal()
     try:
-        query = (
-            db.query(HIITSession)
-            .filter(HIITSession.IsDeleted == False)
-        )
+        query = db.query(
+            HIITSession.id,
+            HIITSession.Name,
+            HIITSession.Date,
+            HIITSession.Workout,
+            HIITSession.Calories
+        ).filter(HIITSession.IsDeleted == False)
 
         if name:
             query = query.filter(HIITSession.Name == name)
 
-        sessions = query.all()
+        rows = query.all()
 
         result = []
-
-        for s in sessions:
-            data = s.__dict__.copy()
-            data.pop("_sa_instance_state", None)
-            result.append(data)
+        for r in rows:
+            result.append({
+                "id": r.id,
+                "Name": r.Name,
+                "Date": r.Date,
+                "Workout": r.Workout,
+                "Calories": r.Calories
+            })
 
         return result
+
+    except Exception as e:
+        print("❌ HIIT LOAD ERROR:", e)
+        return []
 
     finally:
         db.close()
 
 
 def delete_hiit_session(session_id):
-    """Soft delete HIIT session"""
     db = SessionLocal()
     try:
         record = (
@@ -229,6 +243,9 @@ def delete_hiit_session(session_id):
         if record:
             record.IsDeleted = True
             db.commit()
+
+    except Exception as e:
+        print("❌ HIIT delete error:", e)
 
     finally:
         db.close()
