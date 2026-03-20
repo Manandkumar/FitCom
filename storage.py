@@ -13,9 +13,7 @@ import hashlib
 # =======================================================
 
 def hash_password(password):
-    """
-    Convert plain password into hashed version
-    """
+    """Convert plain password into hashed version"""
     return hashlib.sha256(password.encode()).hexdigest()
 
 
@@ -28,9 +26,11 @@ def set_user_password(name, password):
     try:
         hashed = hash_password(password)
 
-        records = db.query(Report)\
-                    .filter(Report.Name == name)\
-                    .all()
+        records = (
+            db.query(Report)
+            .filter(Report.Name == name)
+            .all()
+        )
 
         for r in records:
             r.Password = hashed
@@ -48,10 +48,12 @@ def get_user_password(name):
     """
     db = SessionLocal()
     try:
-        record = db.query(Report)\
-                   .filter(Report.Name == name)\
-                   .order_by(Report.id.desc())\  # 🔥 CRITICAL FIX
-                   .first()
+        record = (
+            db.query(Report)
+            .filter(Report.Name == name)
+            .order_by(Report.id.desc())  # ✅ latest record
+            .first()
+        )
 
         if not record:
             return None
@@ -67,9 +69,7 @@ def get_user_password(name):
 # =======================================================
 
 def save_report(name, metrics):
-    """
-    Save new report
-    """
+    """Save new report"""
     db = SessionLocal()
     try:
         report = Report(**metrics)
@@ -81,15 +81,15 @@ def save_report(name, metrics):
 
 
 def load_reports():
-    """
-    Load ACTIVE reports only
-    """
+    """Load ACTIVE reports only"""
     db = SessionLocal()
     try:
-        reports = db.query(Report)\
-                    .filter(Report.IsDeleted == False)\
-                    .order_by(Report.Date)\
-                    .all()
+        reports = (
+            db.query(Report)
+            .filter(Report.IsDeleted == False)
+            .order_by(Report.Date)
+            .all()
+        )
 
         grouped = {}
 
@@ -111,18 +111,18 @@ def load_reports():
 
 
 def delete_record(name, index):
-    """
-    Soft delete report
-    """
+    """Soft delete report"""
     db = SessionLocal()
     try:
-        records = db.query(Report)\
-                    .filter(
-                        Report.Name == name,
-                        Report.IsDeleted == False
-                    )\
-                    .order_by(Report.Date)\
-                    .all()
+        records = (
+            db.query(Report)
+            .filter(
+                Report.Name == name,
+                Report.IsDeleted == False
+            )
+            .order_by(Report.Date)
+            .all()
+        )
 
         if 0 <= index < len(records):
             records[index].IsDeleted = True
@@ -133,19 +133,19 @@ def delete_record(name, index):
 
 
 def update_record(name, date, updated_data):
-    """
-    Update latest record for given date
-    """
+    """Update latest record for given date"""
     db = SessionLocal()
     try:
-        record = db.query(Report)\
-                   .filter(
-                       Report.Name == name,
-                       Report.Date == date,
-                       Report.IsDeleted == False
-                   )\
-                   .order_by(Report.id.desc())\
-                   .first()
+        record = (
+            db.query(Report)
+            .filter(
+                Report.Name == name,
+                Report.Date == date,
+                Report.IsDeleted == False
+            )
+            .order_by(Report.id.desc())
+            .first()
+        )
 
         if record:
             for key, value in updated_data.items():
@@ -163,9 +163,7 @@ def update_record(name, date, updated_data):
 # =======================================================
 
 def save_hiit_session(data):
-    """
-    Save HIIT session
-    """
+    """Save HIIT session"""
     db = SessionLocal()
     try:
         session = HIITSession(**data)
@@ -177,13 +175,13 @@ def save_hiit_session(data):
 
 
 def load_hiit_sessions(name=None):
-    """
-    Load HIIT sessions (optional user filter)
-    """
+    """Load HIIT sessions (optional user filter)"""
     db = SessionLocal()
     try:
-        query = db.query(HIITSession)\
-                  .filter(HIITSession.IsDeleted == False)
+        query = (
+            db.query(HIITSession)
+            .filter(HIITSession.IsDeleted == False)
+        )
 
         if name:
             query = query.filter(HIITSession.Name == name)
@@ -204,14 +202,14 @@ def load_hiit_sessions(name=None):
 
 
 def delete_hiit_session(session_id):
-    """
-    Soft delete HIIT session
-    """
+    """Soft delete HIIT session"""
     db = SessionLocal()
     try:
-        record = db.query(HIITSession)\
-                   .filter(HIITSession.id == session_id)\
-                   .first()
+        record = (
+            db.query(HIITSession)
+            .filter(HIITSession.id == session_id)
+            .first()
+        )
 
         if record:
             record.IsDeleted = True
