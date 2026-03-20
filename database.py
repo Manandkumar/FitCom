@@ -42,3 +42,11 @@ SessionLocal = sessionmaker(
 # -------------------------------------------------------
 
 Base = declarative_base()
+
+# -------------------------------------------------------
+# AUTO CREATE TABLES (CRITICAL FIX)
+# -------------------------------------------------------
+
+from models import Base
+
+Base.metadata.create_all(bind=engine)
