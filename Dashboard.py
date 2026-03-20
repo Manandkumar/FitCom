@@ -2,6 +2,12 @@
 # FitCom - Body Composition Analytics Platform (DB VERSION)
 # ============================================================
 
+from database import engine
+from models import Base
+
+# CREATE TABLES
+Base.metadata.create_all(bind=engine)
+
 import streamlit as st
 import pandas as pd
 import os
