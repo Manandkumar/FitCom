@@ -52,16 +52,17 @@ def set_user_password(name, password):
 
 
 def get_user_password(name):
-    """
-    Retrieve stored hashed password for a user
-    """
     db = SessionLocal()
     try:
         record = db.query(Report)\
                    .filter(Report.Name == name)\
                    .first()
 
-        return record.Password if record else None
+        # 🔥 SAFETY FIX (prevents crash if column missing)
+        if not record:
+            return None
+
+        return getattr(record, "Password", None)
 
     finally:
         db.close()
