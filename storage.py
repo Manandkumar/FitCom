@@ -1,5 +1,5 @@
 # -------------------------------------------------------
-# FitCom - DB Storage Layer (PRODUCTION SAFE)
+# FitCom - DB Storage Layer (PRODUCTION SAFE + SOFT DELETE)
 # -------------------------------------------------------
 
 from database import SessionLocal
@@ -20,13 +20,16 @@ def save_report(name, metrics):
 
 
 # -------------------------------------------------------
-# LOAD REPORTS
+# LOAD REPORTS (ONLY ACTIVE RECORDS)
 # -------------------------------------------------------
 
 def load_reports():
     db = SessionLocal()
     try:
-        reports = db.query(Report).order_by(Report.Date).all()
+        reports = db.query(Report)\
+                    .filter(Report.IsDeleted == False)\
+                    .order_by(Report.Date)\
+                    .all()
 
         grouped = {}
 
@@ -47,33 +50,45 @@ def load_reports():
 
 
 # -------------------------------------------------------
-# DELETE RECORD (FIXED)
+# DELETE RECORD (SOFT DELETE 🔥)
 # -------------------------------------------------------
 
 def delete_record(name, index):
     db = SessionLocal()
     try:
         records = db.query(Report)\
-                    .filter(Report.Name == name)\
+                    .filter(
+                        Report.Name == name,
+                        Report.IsDeleted == False
+                    )\
                     .order_by(Report.Date)\
                     .all()
 
         if 0 <= index < len(records):
-            db.delete(records[index])
+            record = records[index]
+
+            # 🔥 SOFT DELETE (NO DATA LOSS)
+            record.IsDeleted = True
+
             db.commit()
+
     finally:
         db.close()
 
 
 # -------------------------------------------------------
-# UPDATE RECORD (SAFE)
+# UPDATE RECORD (SAFE + ONLY ACTIVE)
 # -------------------------------------------------------
 
 def update_record(name, date, updated_data):
     db = SessionLocal()
     try:
         record = db.query(Report)\
-                   .filter(Report.Name == name, Report.Date == date)\
+                   .filter(
+                       Report.Name == name,
+                       Report.Date == date,
+                       Report.IsDeleted == False
+                   )\
                    .order_by(Report.id.desc())\
                    .first()
 
