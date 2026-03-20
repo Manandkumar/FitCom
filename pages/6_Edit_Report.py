@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Edit Athlete Report (DB VERSION - STABLE)
+# FitCom - Edit Athlete Report (FIXED VERSION)
 # ============================================================
 
 import streamlit as st
@@ -49,25 +49,41 @@ df = pd.DataFrame(
     [item for sublist in data.values() for item in sublist]
 )
 
+# 🔥 Ensure proper date handling
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df = df.dropna(subset=["Date"])
+df = df.sort_values("Date")
+
 # ------------------------------------------------------------
 # SELECT USER
 # ------------------------------------------------------------
 
 user = st.selectbox("Select Athlete", sorted(df["Name"].dropna().unique()))
 
-user_df = df[df["Name"] == user]
+user_df = df[df["Name"] == user].sort_values("Date")
 
 if user_df.empty:
     st.warning("No records found for selected athlete.")
     st.stop()
 
 # ------------------------------------------------------------
-# SELECT DATE
+# SELECT DATE (STRING SAFE)
 # ------------------------------------------------------------
 
-date = st.selectbox("Select Report Date", sorted(user_df["Date"]))
+date_options = user_df["Date"].dt.strftime("%Y-%m-%d")
 
-record = user_df[user_df["Date"] == date].iloc[0]
+selected_date = st.selectbox("Select Report Date", date_options)
+
+# ------------------------------------------------------------
+# 🔥 FIX: PICK LATEST RECORD FOR SAME DATE
+# ------------------------------------------------------------
+
+record_df = user_df[
+    user_df["Date"].dt.strftime("%Y-%m-%d") == selected_date
+]
+
+# 👉 Always take latest entry of that date
+record = record_df.sort_values("Date").iloc[-1]
 
 # ------------------------------------------------------------
 # EDIT FORM
@@ -89,14 +105,18 @@ water = st.number_input("Body Water", value=float(record.get("BodyWater", 0)))
 if st.button("Update Report"):
 
     try:
-        update_record(user, date, {
-            "Weight": float(weight),
-            "BMI": float(bmi),
-            "BodyFat": float(bodyfat),
-            "MuscleMass": float(muscle),
-            "VisceralFat": float(visceral),
-            "BodyWater": float(water)
-        })
+        update_record(
+            user,
+            selected_date,  # 🔥 consistent string format
+            {
+                "Weight": float(weight),
+                "BMI": float(bmi),
+                "BodyFat": float(bodyfat),
+                "MuscleMass": float(muscle),
+                "VisceralFat": float(visceral),
+                "BodyWater": float(water)
+            }
+        )
 
         st.success("Report updated successfully! ✅")
 
