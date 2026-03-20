@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Main Dashboard (FINAL CLEAN VERSION)
+# FitCom - Main Dashboard (FINAL CLEAN VERSION - IMAGE FIX ONLY)
 # ============================================================
 
 import streamlit as st
@@ -95,8 +95,19 @@ with col1:
 
     photo = latest.get("Photo", None)
 
-    if photo and isinstance(photo, str) and os.path.exists(photo):
-        st.image(photo, width=150)
+    # 🔥 ONLY CHANGE: Support URL + local path
+    if photo:
+        try:
+            if str(photo).startswith("http"):
+                st.image(photo, width=150)
+            elif os.path.exists(photo):
+                st.image(photo, width=150)
+            else:
+                raise Exception("Invalid path")
+        except:
+            st.image("https://via.placeholder.com/150", width=150)
+    else:
+        st.image("https://via.placeholder.com/150", width=150)
 
     st.write(f"**Name:** {latest.get('Name','')}")
     st.write(f"**Date:** {latest.get('Date','').strftime('%Y-%m-%d')}")
@@ -143,7 +154,7 @@ if len(user_df) > 1:
         st.line_chart(user_df.set_index("Date")[available_cols])
 
 # ============================================================
-# 🔥 NEW: HIIT DASHBOARD SECTION
+# 🔥 HIIT DASHBOARD SECTION (UNCHANGED)
 # ============================================================
 
 st.subheader("🔥 HIIT Activity")
