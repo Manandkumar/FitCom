@@ -1,12 +1,5 @@
 # ============================================================
-# FitCom - Member Dashboard
-# Author: Anand Kumar
-#
-# Description:
-# - Member login system
-# - Body composition tracking
-# - Progress visualization
-# - HIIT workout tracking (NEW 🔥)
+# FitCom - Member Dashboard (DB VERSION - STABLE)
 # ============================================================
 
 import streamlit as st
@@ -15,40 +8,30 @@ import sys
 import os
 from datetime import datetime
 
-# -------------------------------------------------------
-# LOAD SIDEBAR
-# -------------------------------------------------------
 from sidebar import render_sidebar
 render_sidebar()
 
-# Fix import path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from storage import load_reports, save_report, delete_record
 
 # -------------------------------------------------------
-# HIIT STORAGE UTILITIES
+# HIIT STORAGE (KEEP CSV - OPTIONAL UPGRADE LATER)
 # -------------------------------------------------------
 
 HIIT_FILE = "hiit_data.csv"
 
-
 def save_hiit_session(data):
-    """Save HIIT session to CSV"""
     df = pd.DataFrame([data])
-
     if os.path.exists(HIIT_FILE):
         df.to_csv(HIIT_FILE, mode='a', header=False, index=False)
     else:
         df.to_csv(HIIT_FILE, index=False)
 
-
 def load_hiit_sessions():
-    """Load HIIT sessions"""
     if os.path.exists(HIIT_FILE):
         return pd.read_csv(HIIT_FILE)
     return pd.DataFrame()
-
 
 # -------------------------------------------------------
 # SESSION STATE
@@ -73,7 +56,7 @@ if not reports:
     st.stop()
 
 # -------------------------------------------------------
-# LOGIN SECTION
+# LOGIN
 # -------------------------------------------------------
 
 if not st.session_state.logged_in:
@@ -105,7 +88,7 @@ if not st.session_state.logged_in:
             st.rerun()
 
 # -------------------------------------------------------
-# MAIN DASHBOARD
+# DASHBOARD
 # -------------------------------------------------------
 
 else:
@@ -120,7 +103,7 @@ else:
         st.rerun()
 
     # -------------------------------------------------------
-    # LOAD USER DATA
+    # LOAD USER DATA (SORTED)
     # -------------------------------------------------------
 
     user_data = reports[selected_name]
@@ -129,6 +112,10 @@ else:
     if df.empty:
         st.info("No reports available")
         st.stop()
+
+    # ✅ FIX: ensure date ordering
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df.sort_values("Date")
 
     df_display = df.drop(columns=["Age"], errors="ignore")
     latest = df.iloc[-1]
@@ -172,14 +159,14 @@ else:
         new_record = {
             "Name": selected_name,
             "Date": datetime.now().strftime("%Y-%m-%d"),
-            "Height": height,
+            "Height": float(height),
             "Gender": gender,
-            "Weight": weight,
-            "BodyFat": bodyfat,
-            "MuscleMass": muscle_mass,
-            "BodyWater": body_water,
-            "VisceralFat": visceral_fat,
-            "SubcutaneousFat": subcutaneous_fat
+            "Weight": float(weight),
+            "BodyFat": float(bodyfat),
+            "MuscleMass": float(muscle_mass),
+            "BodyWater": float(body_water),
+            "VisceralFat": float(visceral_fat),
+            "SubcutaneousFat": float(subcutaneous_fat)
         }
 
         save_report(selected_name, new_record)
@@ -188,22 +175,22 @@ else:
         st.rerun()
 
     # -------------------------------------------------------
-    # PROGRESS CHARTS
+    # PROGRESS CHARTS (SAFE)
     # -------------------------------------------------------
 
     st.subheader("📈 Progress")
 
     if "Weight" in df.columns:
-        st.line_chart(df["Weight"])
+        st.line_chart(df.set_index("Date")["Weight"])
 
     if "BodyFat" in df.columns:
-        st.line_chart(df["BodyFat"])
+        st.line_chart(df.set_index("Date")["BodyFat"])
 
     if "MuscleMass" in df.columns:
-        st.line_chart(df["MuscleMass"])
+        st.line_chart(df.set_index("Date")["MuscleMass"])
 
     # -------------------------------------------------------
-    # 🔥 HIIT TRACKER (NEW FEATURE)
+    # HIIT TRACKER
     # -------------------------------------------------------
 
     st.divider()
@@ -218,7 +205,6 @@ else:
                 "Workout Type",
                 ["Running", "Cycling", "Skipping", "Circuit", "Other"]
             )
-
             duration = st.number_input("Duration (minutes)", 1, 180)
 
         with col2:
@@ -259,7 +245,7 @@ else:
         user_hiit = hiit_df[hiit_df["Name"] == selected_name]
 
         if not user_hiit.empty:
-            st.dataframe(user_hiit.sort_index(ascending=False), use_container_width=True)
+            st.dataframe(user_hiit.sort_values("Date", ascending=False), use_container_width=True)
         else:
             st.info("No HIIT sessions yet")
 
@@ -267,7 +253,7 @@ else:
         st.info("No HIIT data available")
 
     # -------------------------------------------------------
-    # HIIT CALORIE TREND
+    # HIIT TREND
     # -------------------------------------------------------
 
     if not hiit_df.empty:
@@ -287,6 +273,7 @@ else:
     if len(df) > 1:
 
         recent = df.tail(7)
+
         weight_change = recent["Weight"].iloc[-1] - recent["Weight"].iloc[0]
 
         if weight_change < -1:

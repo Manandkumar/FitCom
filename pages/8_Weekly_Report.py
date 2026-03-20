@@ -1,51 +1,41 @@
 # ============================================================
-# FitCom - Weekly Fitness Report
-# Author: Anand Kumar
-#
-# Notes:
-# - Shows week-over-week changes for a selected user
-# - Focuses on key metrics: Weight, Body Fat, Muscle Mass
-# - Age is hidden from UI for privacy
+# FitCom - Weekly Fitness Report (DB VERSION - STABLE)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
-import os
 
-# -------------------------------------------------------
-# Load shared sidebar (keeps UI consistent)
-# -------------------------------------------------------
-
+from storage import load_reports
 from sidebar import render_sidebar
+
 render_sidebar()
-
-# -------------------------------------------------------
-# CONFIG
-# -------------------------------------------------------
-
-FILE_NAME = "fitcom_reports.csv"
 
 st.title("📅 Weekly Fitness Report")
 
 # -------------------------------------------------------
-# DATA LOADING
+# LOAD DATA (DB)
 # -------------------------------------------------------
-# Basic safety check – if no data file, stop early
 
-if not os.path.exists(FILE_NAME):
+data = load_reports()
+
+if not data:
     st.info("No reports available.")
     st.stop()
 
-# Load dataset
-df = pd.read_csv(FILE_NAME)
+# Flatten DB data
+df = pd.DataFrame(
+    [item for sublist in data.values() for item in sublist]
+)
 
-# Convert Date column → datetime for sorting & charts
+# Convert Date column → datetime
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+# Remove invalid dates
+df = df.dropna(subset=["Date"])
 
 # -------------------------------------------------------
 # CLEAN DATA FOR UI
 # -------------------------------------------------------
-# Remove sensitive / unnecessary fields (Age hidden)
 
 df_display = df.drop(columns=["Age"], errors="ignore")
 
@@ -53,27 +43,27 @@ df_display = df.drop(columns=["Age"], errors="ignore")
 # USER SELECTION
 # -------------------------------------------------------
 
-user = st.selectbox("Select Athlete", sorted(df["Name"].unique()))
+user = st.selectbox("Select Athlete", sorted(df["Name"].dropna().unique()))
 
-# Filter data for selected user
+# Filter data
 user_df = df[df["Name"] == user].sort_values("Date")
 
-# Safety check – need at least 2 entries for comparison
+# Need at least 2 entries
 if len(user_df) < 2:
     st.info("Need at least two reports to generate a weekly report.")
     st.stop()
 
 # -------------------------------------------------------
-# WEEKLY COMPARISON LOGIC
+# WEEKLY COMPARISON
 # -------------------------------------------------------
-# Compare latest vs previous record
 
 latest = user_df.iloc[-1]
 previous = user_df.iloc[-2]
 
-weight_change = latest["Weight"] - previous["Weight"]
-fat_change = latest["BodyFat"] - previous["BodyFat"]
-muscle_change = latest["MuscleMass"] - previous["MuscleMass"]
+# Safe calculations
+weight_change = latest.get("Weight", 0) - previous.get("Weight", 0)
+fat_change = latest.get("BodyFat", 0) - previous.get("BodyFat", 0)
+muscle_change = latest.get("MuscleMass", 0) - previous.get("MuscleMass", 0)
 
 # -------------------------------------------------------
 # SUMMARY METRICS
@@ -88,57 +78,58 @@ col2.metric("Body Fat Change (%)", round(fat_change, 2))
 col3.metric("Muscle Mass Change (kg)", round(muscle_change, 2))
 
 # -------------------------------------------------------
-# AI-LIKE INSIGHTS (RULE-BASED FOR NOW)
+# INSIGHTS
 # -------------------------------------------------------
 
 st.subheader("🧠 Weekly Insight")
 
 insight = []
 
-# Weight trend
+# Weight
 if weight_change < 0:
     insight.append("🔥 Great progress! Weight has decreased.")
-
 elif weight_change > 0:
     insight.append("⚠️ Weight increased. Review diet and activity.")
 
-# Body fat trend
+# Fat
 if fat_change < 0:
     insight.append("💪 Body fat is reducing. Good consistency!")
-
 elif fat_change > 0:
     insight.append("⚠️ Body fat increased. Watch nutrition.")
 
-# Muscle trend
+# Muscle
 if muscle_change > 0:
     insight.append("🏋️ Muscle mass increased. Strength training is working.")
-
 elif muscle_change < 0:
     insight.append("⚠️ Muscle loss detected. Increase protein intake.")
 
-# Fallback
+# Default
 if not insight:
     insight.append("👍 Body composition is stable. Maintain consistency.")
 
-# Display insights
 for tip in insight:
     st.success(tip)
 
 # -------------------------------------------------------
 # PROGRESS CHART
 # -------------------------------------------------------
-# Shows trend over time
 
 st.subheader("📈 Progress Trend")
 
-chart_df = user_df.set_index("Date")[["Weight", "BodyFat", "MuscleMass"]]
+available_cols = [
+    col for col in ["Weight", "BodyFat", "MuscleMass"]
+    if col in user_df.columns
+]
 
-st.line_chart(chart_df)
+if available_cols:
+    chart_df = user_df.set_index("Date")[available_cols]
+    st.line_chart(chart_df)
+else:
+    st.warning("No valid metrics available for chart")
 
 # -------------------------------------------------------
-# DOWNLOAD SECTION
+# DOWNLOAD
 # -------------------------------------------------------
-# Export last 7 entries as CSV
 
 st.subheader("📥 Download Weekly Report")
 
