@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Member Dashboard (FINAL WITH AUTH + STREAK 🔥)
+# FitCom - Member Dashboard (FINAL FIXED AUTH 🔥)
 # ============================================================
 
 import streamlit as st
@@ -83,7 +83,7 @@ if not reports:
 
 
 # =======================================================
-# 🔐 LOGIN SYSTEM (HARD FIXED 🔥)
+# 🔐 LOGIN SYSTEM (FINAL FIX)
 # =======================================================
 
 if not st.session_state.logged_in:
@@ -103,7 +103,7 @@ if not st.session_state.logged_in:
 
         stored_password = get_user_password(selected_name)
 
-        # 🔥 AUTO FIX: If password missing but user exists → force reset mode
+        # ---------------- FIRST TIME / BROKEN STATE ----------------
         if stored_password is None:
 
             st.warning("⚠️ First time / Reset login — set your password")
@@ -120,17 +120,19 @@ if not st.session_state.logged_in:
                     st.error("Passwords do not match")
 
                 else:
+                    # 🔥 Save password
                     set_user_password(selected_name, new_pass)
 
-                    # 🔥 VERIFY IMMEDIATELY (CRITICAL FIX)
-                    check = get_user_password(selected_name)
+                    # 🔥 HARD VERIFY (THIS IS THE KEY FIX)
+                    verify = get_user_password(selected_name)
 
-                    if check is None:
-                        st.error("❌ Password save failed. Check DB.")
+                    if verify is None:
+                        st.error("❌ Password not saved. DB issue.")
                     else:
                         st.success("✅ Password created! Please login.")
                         st.rerun()
 
+        # ---------------- NORMAL LOGIN ----------------
         else:
 
             password = st.text_input("Enter Password", type="password")
@@ -141,9 +143,7 @@ if not st.session_state.logged_in:
                     st.warning("Enter password")
 
                 else:
-                    hashed_input = hash_password(password)
-
-                    if hashed_input == stored_password:
+                    if hash_password(password) == stored_password:
                         st.session_state.logged_in = True
                         st.session_state.user = selected_name
                         st.success("Login successful ✅")
@@ -169,12 +169,6 @@ else:
             st.session_state.logged_in = False
             st.session_state.user = None
             st.rerun()
-
-    # -------------------------------------------------------
-    # 🔐 CHANGE PASSWORD (DISABLED)
-    # -------------------------------------------------------
-
-    # (Intentionally removed)
 
     # -------------------------------------------------------
     # LOAD USER DATA
