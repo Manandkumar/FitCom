@@ -1,17 +1,21 @@
+# ============================================================
+# FitCom - Edit Athlete Report (DB VERSION - STABLE)
+# ============================================================
+
 import streamlit as st
 import pandas as pd
-import os
+
+from storage import load_reports, update_record
 from sidebar import render_sidebar
 
 render_sidebar()
 
-FILE_NAME = "fitcom_reports.csv"
 ADMIN_CODE = "syntra123"
 
 st.title("✏️ Edit Athlete Report")
 
 # ------------------------------------------------------------
-# Access Control
+# ACCESS CONTROL
 # ------------------------------------------------------------
 
 if "authorized" not in st.session_state:
@@ -22,7 +26,6 @@ if not st.session_state.authorized:
     code = st.text_input("Enter Admin Access Code", type="password")
 
     if st.button("Unlock"):
-
         if code == ADMIN_CODE:
             st.session_state.authorized = True
             st.success("Access granted")
@@ -32,45 +35,70 @@ if not st.session_state.authorized:
     st.stop()
 
 # ------------------------------------------------------------
-# Edit Reports Section
+# LOAD DATA (DB)
 # ------------------------------------------------------------
 
-if os.path.exists(FILE_NAME):
+data = load_reports()
 
-    df = pd.read_csv(FILE_NAME)
-
-    user = st.selectbox("Select Athlete", df["Name"].unique())
-
-    user_df = df[df["Name"] == user]
-
-    date = st.selectbox("Select Report Date", user_df["Date"])
-
-    record_index = df[(df["Name"] == user) & (df["Date"] == date)].index[0]
-
-    record = df.loc[record_index]
-
-    st.subheader("Edit Metrics")
-
-    weight = st.number_input("Weight", value=float(record["Weight"]))
-    bmi = st.number_input("BMI", value=float(record["BMI"]))
-    bodyfat = st.number_input("Body Fat", value=float(record["BodyFat"]))
-    muscle = st.number_input("Muscle Mass", value=float(record["MuscleMass"]))
-    visceral = st.number_input("Visceral Fat", value=float(record["VisceralFat"]))
-    water = st.number_input("Body Water", value=float(record["BodyWater"]))
-
-    if st.button("Update Report"):
-
-        df.loc[record_index, "Weight"] = weight
-        df.loc[record_index, "BMI"] = bmi
-        df.loc[record_index, "BodyFat"] = bodyfat
-        df.loc[record_index, "MuscleMass"] = muscle
-        df.loc[record_index, "VisceralFat"] = visceral
-        df.loc[record_index, "BodyWater"] = water
-
-        df.to_csv(FILE_NAME, index=False)
-
-        st.success("Report updated successfully!")
-
-else:
-
+if not data:
     st.info("No reports available to edit.")
+    st.stop()
+
+# Flatten data
+df = pd.DataFrame(
+    [item for sublist in data.values() for item in sublist]
+)
+
+# ------------------------------------------------------------
+# SELECT USER
+# ------------------------------------------------------------
+
+user = st.selectbox("Select Athlete", sorted(df["Name"].dropna().unique()))
+
+user_df = df[df["Name"] == user]
+
+if user_df.empty:
+    st.warning("No records found for selected athlete.")
+    st.stop()
+
+# ------------------------------------------------------------
+# SELECT DATE
+# ------------------------------------------------------------
+
+date = st.selectbox("Select Report Date", sorted(user_df["Date"]))
+
+record = user_df[user_df["Date"] == date].iloc[0]
+
+# ------------------------------------------------------------
+# EDIT FORM
+# ------------------------------------------------------------
+
+st.subheader("Edit Metrics")
+
+weight = st.number_input("Weight", value=float(record.get("Weight", 0)))
+bmi = st.number_input("BMI", value=float(record.get("BMI", 0)))
+bodyfat = st.number_input("Body Fat", value=float(record.get("BodyFat", 0)))
+muscle = st.number_input("Muscle Mass", value=float(record.get("MuscleMass", 0)))
+visceral = st.number_input("Visceral Fat", value=float(record.get("VisceralFat", 0)))
+water = st.number_input("Body Water", value=float(record.get("BodyWater", 0)))
+
+# ------------------------------------------------------------
+# UPDATE
+# ------------------------------------------------------------
+
+if st.button("Update Report"):
+
+    try:
+        update_record(user, date, {
+            "Weight": float(weight),
+            "BMI": float(bmi),
+            "BodyFat": float(bodyfat),
+            "MuscleMass": float(muscle),
+            "VisceralFat": float(visceral),
+            "BodyWater": float(water)
+        })
+
+        st.success("Report updated successfully! ✅")
+
+    except Exception as e:
+        st.error(f"Update failed: {e}")
