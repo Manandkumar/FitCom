@@ -1,13 +1,14 @@
 # -------------------------------------------------------
-# FitCom - DB Storage Layer (PRODUCTION SAFE + SOFT DELETE)
+# FitCom - DB Storage Layer (FINAL PRODUCTION VERSION)
 # -------------------------------------------------------
 
 from database import SessionLocal
-from models import Report
+from models import Report, HIITSession
 
-# -------------------------------------------------------
+
+# =======================================================
 # SAVE REPORT
-# -------------------------------------------------------
+# =======================================================
 
 def save_report(name, metrics):
     db = SessionLocal()
@@ -19,9 +20,9 @@ def save_report(name, metrics):
         db.close()
 
 
-# -------------------------------------------------------
-# LOAD REPORTS (ONLY ACTIVE RECORDS)
-# -------------------------------------------------------
+# =======================================================
+# LOAD REPORTS (ONLY ACTIVE)
+# =======================================================
 
 def load_reports():
     db = SessionLocal()
@@ -45,13 +46,14 @@ def load_reports():
             grouped[name].append(data)
 
         return grouped
+
     finally:
         db.close()
 
 
-# -------------------------------------------------------
-# DELETE RECORD (SOFT DELETE 🔥)
-# -------------------------------------------------------
+# =======================================================
+# DELETE REPORT (SOFT DELETE)
+# =======================================================
 
 def delete_record(name, index):
     db = SessionLocal()
@@ -67,7 +69,7 @@ def delete_record(name, index):
         if 0 <= index < len(records):
             record = records[index]
 
-            # 🔥 SOFT DELETE (NO DATA LOSS)
+            # 🔥 Soft delete
             record.IsDeleted = True
 
             db.commit()
@@ -76,9 +78,9 @@ def delete_record(name, index):
         db.close()
 
 
-# -------------------------------------------------------
-# UPDATE RECORD (SAFE + ONLY ACTIVE)
-# -------------------------------------------------------
+# =======================================================
+# UPDATE REPORT
+# =======================================================
 
 def update_record(name, date, updated_data):
     db = SessionLocal()
@@ -98,5 +100,68 @@ def update_record(name, date, updated_data):
                     setattr(record, key, value)
 
             db.commit()
+
+    finally:
+        db.close()
+
+
+# =======================================================
+# HIIT - SAVE SESSION
+# =======================================================
+
+def save_hiit_session(data):
+    db = SessionLocal()
+    try:
+        session = HIITSession(**data)
+        db.add(session)
+        db.commit()
+    finally:
+        db.close()
+
+
+# =======================================================
+# HIIT - LOAD SESSIONS (ONLY ACTIVE)
+# =======================================================
+
+def load_hiit_sessions(name=None):
+    db = SessionLocal()
+    try:
+        query = db.query(HIITSession)\
+                  .filter(HIITSession.IsDeleted == False)
+
+        # Optional filter by user
+        if name:
+            query = query.filter(HIITSession.Name == name)
+
+        sessions = query.order_by(HIITSession.Date).all()
+
+        result = []
+
+        for s in sessions:
+            data = s.__dict__.copy()
+            data.pop("_sa_instance_state", None)
+            result.append(data)
+
+        return result
+
+    finally:
+        db.close()
+
+
+# =======================================================
+# HIIT - DELETE SESSION (SOFT DELETE)
+# =======================================================
+
+def delete_hiit_session(session_id):
+    db = SessionLocal()
+    try:
+        record = db.query(HIITSession)\
+                   .filter(HIITSession.id == session_id)\
+                   .first()
+
+        if record:
+            record.IsDeleted = True
+            db.commit()
+
     finally:
         db.close()
