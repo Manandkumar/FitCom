@@ -1,10 +1,14 @@
 # -------------------------------------------------------
-# FitCom - Database Models (Optimized + Soft Delete)
+# FitCom - Database Models (FINAL PRODUCTION VERSION)
 # -------------------------------------------------------
 
 from sqlalchemy import Column, Integer, String, Float, Boolean
 from database import Base
 
+
+# =======================================================
+# REPORT TABLE
+# =======================================================
 
 class Report(Base):
     __tablename__ = "reports"
@@ -76,6 +80,32 @@ class Report(Base):
     IdealBodyWeight = Column(Float)
 
     # ---------------------------------------------------
-    # SOFT DELETE (NEW 🔥)
+    # SOFT DELETE
     # ---------------------------------------------------
-    IsDeleted = Column(Boolean, default=False, index=True)
+    IsDeleted = Column(Boolean, default=False, nullable=False, index=True)
+
+
+# =======================================================
+# HIIT WORKOUT TABLE
+# =======================================================
+
+class HIITSession(Base):
+    __tablename__ = "hiit_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    Name = Column(String, index=True)
+    Date = Column(String, index=True)
+
+    Workout = Column(String)
+    Duration = Column(Integer)
+
+    Calories = Column(Integer)
+    HeartRate = Column(Integer)
+
+    Notes = Column(String)
+
+    # ---------------------------------------------------
+    # SOFT DELETE (CONSISTENT TYPE)
+    # ---------------------------------------------------
+    IsDeleted = Column(Boolean, default=False, nullable=False, index=True)
