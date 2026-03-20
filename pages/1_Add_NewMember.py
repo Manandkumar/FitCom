@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Add Body Composition Report (FINAL COMPLETE VERSION)
+# FitCom - Add Body Composition Report (DB VERSION - STABLE)
 # ============================================================
 
 import streamlit as st
@@ -53,15 +53,21 @@ def water_weight(weight, bodywater):
     return round(weight * bodywater / 100, 2)
 
 
+# ✅ FIX: stable image saving (absolute path)
 def save_image(uploaded_file):
     try:
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        folder = os.path.join(BASE_DIR, "profiles")
+        os.makedirs(folder, exist_ok=True)
+
         img = Image.open(uploaded_file).convert("RGB")
-        os.makedirs("profiles", exist_ok=True)
-        path = f"profiles/{uuid.uuid4()}.jpg"
-        img.save(path)
-        return path, img
-    except:
-        st.error("Image save failed")
+        file_path = os.path.join(folder, f"{uuid.uuid4()}.jpg")
+        img.save(file_path)
+
+        return file_path, img
+
+    except Exception as e:
+        st.error(f"Image save failed: {e}")
         return None, None
 
 
@@ -77,6 +83,7 @@ col1, col2 = st.columns([1, 2])
 with col1:
     uploaded = st.file_uploader("Upload Photo")
     photo_path = None
+
     if uploaded:
         photo_path, img = save_image(uploaded)
         if img:
@@ -199,33 +206,38 @@ if st.button("Save Report", use_container_width=True):
         st.error("Name required")
 
     else:
-        report = {
-            "Name": name,
-            "Gender": gender,
-            "Date": datetime.now().strftime("%Y-%m-%d"),
-            "Photo": photo_path,
-            "Age": age,
-            "Height": height,
-            "Weight": weight,
-            "BMI": bmi,
-            "BodyFat": bodyfat,
-            "FatMass": fat_mass_val,
-            "FatFreeBodyWeight": ffm,
-            "MuscleMass": muscle_mass,
-            "MuscleRate": muscle_rate,
-            "SkeletalMuscle": skeletal_muscle,
-            "BoneMass": bone_mass,
-            "SubcutaneousFat": subcutaneous_fat,
-            "BodyWater": body_water,
-            "WaterWeight": water_weight_val,
-            "ProteinMass": protein_mass,
-            "ProteinRate": protein_rate,
-            "VisceralFat": visceral_fat,
-            "BMR": bmr,
-            "BodyAge": body_age,
-            "WHR": whr,
-            "IdealBodyWeight": ideal_weight
-        }
+        try:
+            report = {
+                "Name": name,
+                "Gender": gender,
+                "Date": datetime.now().strftime("%Y-%m-%d"),
+                "Photo": photo_path,
+                "Age": int(age),
+                "Height": float(height),
+                "Weight": float(weight),
+                "BMI": float(bmi),
+                "BodyFat": float(bodyfat),
+                "FatMass": float(fat_mass_val),
+                "FatFreeBodyWeight": float(ffm),
+                "MuscleMass": float(muscle_mass),
+                "MuscleRate": float(muscle_rate),
+                "SkeletalMuscle": float(skeletal_muscle),
+                "BoneMass": float(bone_mass),
+                "SubcutaneousFat": float(subcutaneous_fat),
+                "BodyWater": float(body_water),
+                "WaterWeight": float(water_weight_val),
+                "ProteinMass": float(protein_mass),
+                "ProteinRate": float(protein_rate),
+                "VisceralFat": float(visceral_fat),
+                "BMR": float(bmr),
+                "BodyAge": int(body_age),
+                "WHR": float(whr),
+                "IdealBodyWeight": float(ideal_weight)
+            }
 
-        save_report(name, report)
-        st.success("Report saved successfully ✅")
+            save_report(name, report)
+
+            st.success("Report saved successfully ✅")
+
+        except Exception as e:
+            st.error(f"Error saving report: {e}")
