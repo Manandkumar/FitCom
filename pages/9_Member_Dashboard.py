@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Member Dashboard (FINAL WITH STREAK 🔥)
+# FitCom - Member Dashboard (FINAL WITH AUTH + STREAK 🔥)
 # ============================================================
 
 import streamlit as st
@@ -18,11 +18,14 @@ from storage import (
     save_report,
     delete_record,
     save_hiit_session,
-    load_hiit_sessions
+    load_hiit_sessions,
+    get_user_password,
+    set_user_password,
+    hash_password
 )
 
 # -------------------------------------------------------
-# 🔥 STREAK CALCULATION FUNCTION
+# 🔥 STREAK CALCULATION
 # -------------------------------------------------------
 
 def calculate_streaks(df):
@@ -50,11 +53,7 @@ def calculate_streaks(df):
         else:
             current_streak = 1
 
-    # Check if streak still active
-    today = datetime.today().date()
-    last_date = dates[-1]
-
-    if (today - last_date).days > 1:
+    if (datetime.today().date() - dates[-1]).days > 1:
         current_streak = 0
 
     return current_streak, longest_streak
@@ -70,6 +69,7 @@ if "logged_in" not in st.session_state:
 if "user" not in st.session_state:
     st.session_state.user = None
 
+
 # -------------------------------------------------------
 # PAGE TITLE
 # -------------------------------------------------------
@@ -79,12 +79,13 @@ st.title("👤 Member Dashboard")
 reports = load_reports()
 
 if not reports:
-    st.warning("⚠️ No members found. Please add a report first.")
+    st.warning("⚠️ No members found.")
     st.stop()
 
-# -------------------------------------------------------
-# LOGIN
-# -------------------------------------------------------
+
+# =======================================================
+# 🔐 LOGIN SYSTEM (FINAL)
+# =======================================================
 
 if not st.session_state.logged_in:
 
@@ -101,22 +102,53 @@ if not st.session_state.logged_in:
 
     password = st.text_input("Enter Password", type="password")
 
-    if st.button("Login"):
+    if selected_name:
 
-        if not selected_name:
-            st.warning("Please select your name")
+        stored_password = get_user_password(selected_name)
 
-        elif password != selected_name:
-            st.error("❌ Incorrect password")
+        # ---------------------------
+        # FIRST TIME PASSWORD SETUP
+        # ---------------------------
+        if not stored_password:
 
+            st.warning("⚠️ First time login — set your password")
+
+            new_pass = st.text_input("Set Password", type="password")
+            confirm_pass = st.text_input("Confirm Password", type="password")
+
+            if st.button("Create Password"):
+
+                if not new_pass:
+                    st.warning("Enter password")
+
+                elif new_pass != confirm_pass:
+                    st.error("Passwords do not match")
+
+                else:
+                    set_user_password(selected_name, new_pass)
+                    st.success("✅ Password created! Login again.")
+                    st.rerun()
+
+        # ---------------------------
+        # NORMAL LOGIN
+        # ---------------------------
         else:
-            st.session_state.logged_in = True
-            st.session_state.user = selected_name
-            st.rerun()
 
-# -------------------------------------------------------
+            if st.button("Login"):
+
+                if hash_password(password) != stored_password:
+                    st.error("❌ Incorrect password")
+
+                else:
+                    st.session_state.logged_in = True
+                    st.session_state.user = selected_name
+                    st.success("Login successful ✅")
+                    st.rerun()
+
+
+# =======================================================
 # DASHBOARD
-# -------------------------------------------------------
+# =======================================================
 
 else:
 
@@ -130,20 +162,40 @@ else:
         st.rerun()
 
     # -------------------------------------------------------
+    # CHANGE PASSWORD
+    # -------------------------------------------------------
+
+    st.divider()
+    st.subheader("🔐 Change Password")
+
+    current_password = st.text_input("Current Password", type="password")
+    new_password = st.text_input("New Password", type="password")
+    confirm_password = st.text_input("Confirm Password", type="password")
+
+    if st.button("Update Password"):
+
+        stored_password = get_user_password(selected_name)
+
+        if hash_password(current_password) != stored_password:
+            st.error("❌ Current password incorrect")
+
+        elif new_password != confirm_password:
+            st.error("Passwords do not match")
+
+        else:
+            set_user_password(selected_name, new_password)
+            st.success("✅ Password updated")
+
+    # -------------------------------------------------------
     # LOAD USER DATA
     # -------------------------------------------------------
 
     user_data = reports[selected_name]
     df = pd.DataFrame(user_data)
 
-    if df.empty:
-        st.info("No reports available")
-        st.stop()
-
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df.sort_values("Date")
 
-    df_display = df.drop(columns=["Age"], errors="ignore")
     latest = df.iloc[-1]
 
     height = latest.get("Height", 0)
@@ -166,170 +218,88 @@ else:
     # -------------------------------------------------------
 
     st.divider()
-    st.subheader("➕ Add New Progress")
+    st.subheader("➕ Add Progress")
 
-    progress_date = st.date_input("Select Progress Date", value=datetime.today())
+    progress_date = st.date_input("Date", value=datetime.today())
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        weight = st.number_input("Weight (kg)", 30.0, 200.0)
-        bodyfat = st.number_input("Body Fat %", 1.0, 60.0)
-        muscle_mass = st.number_input("Muscle Mass (kg)", 10.0, 100.0)
-
-    with col2:
-        body_water = st.number_input("Body Water %", 1.0, 80.0)
-        visceral_fat = st.number_input("Visceral Fat", 1.0, 30.0)
-        subcutaneous_fat = st.number_input("Subcutaneous Fat %", 1.0, 50.0)
+    weight = st.number_input("Weight", 30.0, 200.0)
+    bodyfat = st.number_input("Body Fat", 1.0, 60.0)
+    muscle_mass = st.number_input("Muscle Mass", 10.0, 100.0)
 
     if st.button("Save Progress"):
 
-        new_record = {
+        save_report(selected_name, {
             "Name": selected_name,
             "Date": progress_date.strftime("%Y-%m-%d"),
-            "Height": float(height),
+            "Height": height,
             "Gender": gender,
-            "Weight": float(weight),
-            "BodyFat": float(bodyfat),
-            "MuscleMass": float(muscle_mass),
-            "BodyWater": float(body_water),
-            "VisceralFat": float(visceral_fat),
-            "SubcutaneousFat": float(subcutaneous_fat)
-        }
+            "Weight": weight,
+            "BodyFat": bodyfat,
+            "MuscleMass": muscle_mass
+        })
 
-        save_report(selected_name, new_record)
-
-        st.success("✅ Progress saved!")
+        st.success("Saved!")
         st.rerun()
 
     # -------------------------------------------------------
-    # PROGRESS CHARTS
+    # PROGRESS
     # -------------------------------------------------------
 
     st.subheader("📈 Progress")
 
-    if "Weight" in df.columns:
-        st.line_chart(df.set_index("Date")["Weight"])
-
-    if "BodyFat" in df.columns:
-        st.line_chart(df.set_index("Date")["BodyFat"])
-
-    if "MuscleMass" in df.columns:
-        st.line_chart(df.set_index("Date")["MuscleMass"])
+    st.line_chart(df.set_index("Date")[["Weight", "BodyFat", "MuscleMass"]])
 
     # -------------------------------------------------------
-    # HIIT TRACKER
+    # HIIT
     # -------------------------------------------------------
 
-    st.divider()
-    st.subheader("🔥 HIIT Workout Tracker")
+    st.subheader("🔥 HIIT Tracker")
 
-    with st.form("hiit_form"):
+    with st.form("hiit"):
 
-        hiit_date = st.date_input("Workout Date", value=datetime.today())
+        hiit_date = st.date_input("Workout Date", datetime.today())
+        workout = st.selectbox("Workout", ["Run", "Cycle", "HIIT"])
+        calories = st.number_input("Calories", 0)
 
-        col1, col2 = st.columns(2)
+        if st.form_submit_button("Save"):
 
-        with col1:
-            workout_type = st.selectbox(
-                "Workout Type",
-                ["Running", "Cycling", "Skipping", "Circuit", "Other"]
-            )
-            duration = st.number_input("Duration (minutes)", 1, 180)
-
-        with col2:
-            calories = st.number_input("Calories Burned", 0)
-            heart_rate = st.number_input("Avg Heart Rate", 0)
-
-        notes = st.text_area("Notes")
-
-        submitted = st.form_submit_button("Save HIIT Session")
-
-        if submitted:
-
-            hiit_record = {
+            save_hiit_session({
                 "Name": selected_name,
                 "Date": hiit_date.strftime("%Y-%m-%d"),
-                "Workout": workout_type,
-                "Duration": int(duration),
-                "Calories": int(calories),
-                "HeartRate": int(heart_rate),
-                "Notes": notes
-            }
+                "Workout": workout,
+                "Calories": calories
+            })
 
-            save_hiit_session(hiit_record)
-
-            st.success("🔥 HIIT session saved!")
+            st.success("Saved!")
             st.rerun()
-
-    # -------------------------------------------------------
-    # HIIT HISTORY
-    # -------------------------------------------------------
-
-    st.subheader("📊 HIIT History")
 
     hiit_data = load_hiit_sessions(selected_name)
 
     if hiit_data:
 
         hiit_df = pd.DataFrame(hiit_data)
+        hiit_df["Date"] = pd.to_datetime(hiit_df["Date"])
 
-        hiit_df["Date"] = pd.to_datetime(hiit_df["Date"], errors="coerce")
-        hiit_df = hiit_df.sort_values("Date", ascending=False)
+        st.dataframe(hiit_df)
 
-        st.dataframe(hiit_df, use_container_width=True)
+        # STREAK
+        st.subheader("🔥 Streak")
 
-        if "Calories" in hiit_df.columns:
-            st.subheader("📈 HIIT Calories Trend")
-            st.line_chart(hiit_df.set_index("Date")["Calories"])
-
-        # -------------------------------------------------------
-        # 🔥 WORKOUT STREAK DISPLAY
-        # -------------------------------------------------------
-
-        st.subheader("🔥 Workout Streak")
-
-        current_streak, longest_streak = calculate_streaks(hiit_df)
+        current, longest = calculate_streaks(hiit_df)
 
         col1, col2 = st.columns(2)
-
-        col1.metric("🔥 Current Streak", f"{current_streak} days")
-        col2.metric("🏆 Longest Streak", f"{longest_streak} days")
-
-        if current_streak >= 7:
-            st.success("🔥 Amazing consistency! You're on fire!")
-        elif current_streak >= 3:
-            st.info("💪 Good momentum! Keep going!")
-        elif current_streak == 0:
-            st.warning("⚠️ Streak broken. Start again today!")
-
-    else:
-        st.info("Start logging workouts to build your streak 🔥")
+        col1.metric("Current", current)
+        col2.metric("Best", longest)
 
     # -------------------------------------------------------
-    # DELETE RECORD
+    # DELETE
     # -------------------------------------------------------
 
-    st.subheader("🗑️ Delete Record")
+    st.subheader("🗑 Delete Record")
 
-    options = [
-        f"{i} | {row.get('Date','')} | {row.get('Weight','')} kg"
-        for i, row in df.iterrows()
-    ]
+    idx = st.selectbox("Select", range(len(df)))
 
-    selected_index = st.selectbox(
-        "Select record",
-        range(len(options)),
-        format_func=lambda x: options[x]
-    )
-
-    confirm = st.checkbox("Confirm delete")
-
-    if st.button("Delete Selected Record"):
-
-        if confirm:
-            delete_record(selected_name, selected_index)
-            st.success("🗑️ Record deleted!")
-            st.rerun()
-        else:
-            st.warning("Please confirm deletion")
+    if st.button("Delete"):
+        delete_record(selected_name, idx)
+        st.success("Deleted")
+        st.rerun()
