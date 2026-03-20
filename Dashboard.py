@@ -1,27 +1,16 @@
 # ============================================================
-# FitCom - Body Composition Analytics Platform (DB VERSION)
+# FitCom - Main Dashboard (FINAL CLEAN VERSION)
 # ============================================================
-
-from database import engine
-from models import Base
-
-# CREATE TABLES
-Base.metadata.create_all(bind=engine)
 
 import streamlit as st
 import pandas as pd
 import os
 
 from sidebar import render_sidebar
-from storage import load_reports
-
-# ✅ CRITICAL (creates tables)
-from database import engine
-from models import Base
-Base.metadata.create_all(bind=engine)
+from storage import load_reports, load_hiit_sessions
 
 # ------------------------------------------------------------
-# Page Configuration
+# PAGE CONFIG
 # ------------------------------------------------------------
 
 st.set_page_config(
@@ -31,13 +20,13 @@ st.set_page_config(
 )
 
 # ------------------------------------------------------------
-# Sidebar
+# SIDEBAR
 # ------------------------------------------------------------
 
 render_sidebar()
 
 # ------------------------------------------------------------
-# Utility Functions
+# FITNESS SCORE FUNCTION
 # ------------------------------------------------------------
 
 def calculate_fitness_score(row):
@@ -60,7 +49,7 @@ def calculate_fitness_score(row):
 
 
 # ------------------------------------------------------------
-# LOAD DATA (DB)
+# LOAD REPORT DATA (DB)
 # ------------------------------------------------------------
 
 data = load_reports()
@@ -70,23 +59,21 @@ if not data:
     st.info("No reports available yet.")
     st.stop()
 
-# Flatten DB → DataFrame
 df = pd.DataFrame(
     [item for sublist in data.values() for item in sublist]
 )
 
-# Fix date
 df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 df = df.dropna(subset=["Date"])
 
-# ============================================================
-# DASHBOARD
-# ============================================================
+# ------------------------------------------------------------
+# DASHBOARD TITLE
+# ------------------------------------------------------------
 
 st.title("📊 FitCom Dashboard")
 
 # ------------------------------------------------------------
-# Select User
+# USER SELECTION
 # ------------------------------------------------------------
 
 user = st.selectbox(
@@ -99,7 +86,7 @@ user_df = df[df["Name"] == user].sort_values("Date")
 latest = user_df.iloc[-1]
 
 # ------------------------------------------------------------
-# Profile + Metrics
+# PROFILE + METRICS
 # ------------------------------------------------------------
 
 col1, col2 = st.columns([1, 3])
@@ -112,7 +99,7 @@ with col1:
         st.image(photo, width=150)
 
     st.write(f"**Name:** {latest.get('Name','')}")
-    st.write(f"**Date:** {latest.get('Date','')}")
+    st.write(f"**Date:** {latest.get('Date','').strftime('%Y-%m-%d')}")
 
 with col2:
 
@@ -133,15 +120,14 @@ with col2:
     st.metric("Score", f"{score}/100")
 
 # ------------------------------------------------------------
-# User History
+# USER HISTORY
 # ------------------------------------------------------------
 
 st.subheader("User History")
-
 st.dataframe(user_df, use_container_width=True)
 
 # ------------------------------------------------------------
-# Progress Chart
+# PROGRESS CHART
 # ------------------------------------------------------------
 
 if len(user_df) > 1:
@@ -156,8 +142,40 @@ if len(user_df) > 1:
     if available_cols:
         st.line_chart(user_df.set_index("Date")[available_cols])
 
+# ============================================================
+# 🔥 NEW: HIIT DASHBOARD SECTION
+# ============================================================
+
+st.subheader("🔥 HIIT Activity")
+
+hiit_data = load_hiit_sessions(user)
+
+if hiit_data:
+
+    hiit_df = pd.DataFrame(hiit_data)
+
+    hiit_df["Date"] = pd.to_datetime(hiit_df["Date"], errors="coerce")
+    hiit_df = hiit_df.sort_values("Date", ascending=False)
+
+    # Latest HIIT Summary
+    latest_hiit = hiit_df.iloc[0]
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Last Workout", latest_hiit.get("Workout", "NA"))
+    col2.metric("Calories Burned", latest_hiit.get("Calories", 0))
+    col3.metric("Duration (min)", latest_hiit.get("Duration", 0))
+
+    # HIIT Chart
+    if "Calories" in hiit_df.columns:
+        st.subheader("📈 Calories Burn Trend")
+        st.line_chart(hiit_df.set_index("Date")["Calories"])
+
+else:
+    st.info("No HIIT sessions available")
+
 # ------------------------------------------------------------
-# Most Improved Athlete
+# MOST IMPROVED ATHLETE
 # ------------------------------------------------------------
 
 st.subheader("🔥 Most Improved Athlete")
@@ -192,14 +210,3 @@ if improvements:
 
 else:
     st.info("Add multiple reports to calculate improvement.")
-
-
-# ------------------------------------------------------------
-# DEBUG (OPTIONAL - REMOVE LATER)
-# ------------------------------------------------------------
-
-st.write("Current working dir:", os.getcwd())
-
-db_path = os.path.abspath("fitcom.db")
-st.write("Expected DB path:", db_path)
-st.write("Exists?", os.path.exists(db_path))
