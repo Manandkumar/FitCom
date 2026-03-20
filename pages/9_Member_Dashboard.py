@@ -68,9 +68,6 @@ if "logged_in" not in st.session_state:
 if "user" not in st.session_state:
     st.session_state.user = None
 
-if "show_change_password" not in st.session_state:
-    st.session_state.show_change_password = False
-
 
 # -------------------------------------------------------
 # PAGE TITLE
@@ -86,7 +83,7 @@ if not reports:
 
 
 # =======================================================
-# 🔐 LOGIN SYSTEM (FIXED)
+# 🔐 LOGIN SYSTEM
 # =======================================================
 
 if not st.session_state.logged_in:
@@ -166,44 +163,13 @@ else:
             st.rerun()
 
     # -------------------------------------------------------
-    # 🔐 CHANGE PASSWORD (INSIDE DASHBOARD CLEAN 🔥)
+    # 🔐 CHANGE PASSWORD (DISABLED)
     # -------------------------------------------------------
 
-    st.divider()
+    # st.divider()
 
-    if st.button("🔐 Change Password"):
-        st.session_state.show_change_password = not st.session_state.show_change_password
-
-    if st.session_state.show_change_password:
-
-        with st.container():
-            st.subheader("🔐 Update Password")
-
-            current_password = st.text_input("Current Password", type="password")
-            new_password = st.text_input("New Password", type="password")
-            confirm_password = st.text_input("Confirm Password", type="password")
-
-            if st.button("Update Password"):
-
-                stored_password = get_user_password(selected_name)
-
-                if not current_password:
-                    st.warning("Enter current password")
-
-                elif hash_password(current_password) != stored_password:
-                    st.error("❌ Current password incorrect")
-
-                elif not new_password:
-                    st.warning("Enter new password")
-
-                elif new_password != confirm_password:
-                    st.error("Passwords do not match")
-
-                else:
-                    set_user_password(selected_name, new_password)
-                    st.success("✅ Password updated successfully")
-                    st.session_state.show_change_password = False
-                    st.rerun()
+    # if st.button("🔐 Change Password"):
+    #     pass
 
     # -------------------------------------------------------
     # LOAD USER DATA
