@@ -34,10 +34,10 @@ class Report(Base):
 
     MuscleMass = Column(Float)
     VisceralFat = Column(Float)
-    BMR = Column(Float)
+    BMR = Column(Float) 
 
     # ✅ NEW (IMPORTANT)
-    HealthScore = Column(Float)
+    # HealthScore = Column(Float)
 
     IsDeleted = Column(Boolean, default=False, index=True)
 
