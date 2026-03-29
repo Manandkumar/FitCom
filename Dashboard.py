@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Main Dashboard (FINAL CLEAN VERSION - IMAGE FIX ONLY)
+# FitCom - Main Dashboard (FINAL STABLE VERSION)
 # ============================================================
 
 import streamlit as st
@@ -30,7 +30,6 @@ render_sidebar()
 # ------------------------------------------------------------
 
 def calculate_fitness_score(row):
-
     score = 100
 
     if row.get("BMI", 0) > 25:
@@ -95,17 +94,27 @@ with col1:
 
     photo = latest.get("Photo", None)
 
-    # 🔥 ONLY CHANGE: Support URL + local path
+    # ✅ FIXED IMAGE HANDLING (URL + PATH + BINARY)
     if photo:
         try:
-            if str(photo).startswith("http"):
+            # Case 1: URL
+            if isinstance(photo, str) and photo.startswith("http"):
                 st.image(photo, width=150)
-            elif os.path.exists(photo):
+
+            # Case 2: Local file path
+            elif isinstance(photo, str) and os.path.exists(photo):
                 st.image(photo, width=150)
+
+            # Case 3: Binary image (DB stored)
+            elif isinstance(photo, (bytes, bytearray)):
+                st.image(photo, width=150)
+
             else:
-                raise Exception("Invalid path")
-        except:
+                st.image("https://via.placeholder.com/150", width=150)
+
+        except Exception:
             st.image("https://via.placeholder.com/150", width=150)
+
     else:
         st.image("https://via.placeholder.com/150", width=150)
 
@@ -154,7 +163,7 @@ if len(user_df) > 1:
         st.line_chart(user_df.set_index("Date")[available_cols])
 
 # ============================================================
-# 🔥 HIIT DASHBOARD SECTION (UNCHANGED)
+# 🔥 HIIT DASHBOARD SECTION
 # ============================================================
 
 st.subheader("🔥 HIIT Activity")
@@ -168,7 +177,6 @@ if hiit_data:
     hiit_df["Date"] = pd.to_datetime(hiit_df["Date"], errors="coerce")
     hiit_df = hiit_df.sort_values("Date", ascending=False)
 
-    # Latest HIIT Summary
     latest_hiit = hiit_df.iloc[0]
 
     col1, col2, col3 = st.columns(3)
@@ -177,7 +185,6 @@ if hiit_data:
     col2.metric("Calories Burned", latest_hiit.get("Calories", 0))
     col3.metric("Duration (min)", latest_hiit.get("Duration", 0))
 
-    # HIIT Chart
     if "Calories" in hiit_df.columns:
         st.subheader("📈 Calories Burn Trend")
         st.line_chart(hiit_df.set_index("Date")["Calories"])
