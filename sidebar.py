@@ -111,7 +111,7 @@ def render_sidebar():
 
         # ---------------- NAVIGATION ----------------
         st.page_link("Dashboard.py", label="🏠 Dashboard")
-        st.page_link("pages/1_Add_NewMember.py", label="➕ Add Record")
+        st.page_link("pages/1_Add_Record.py", label="➕ Add Record")
         st.page_link("pages/2_Progress.py", label="📊 Progress")
         st.page_link("pages/3_Leaderboard.py", label="🏆 Leaderboard")
         st.page_link("pages/4_AI_Coach.py", label="🤖 AI Coach")

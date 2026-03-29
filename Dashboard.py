@@ -57,7 +57,7 @@ if not data:
 # Convert to dataframe
 records = []
 
-for name, entries in data.items():
+for _, entries in data.items():
     for r in entries:
         records.append(r)
 

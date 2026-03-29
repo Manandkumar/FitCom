@@ -32,7 +32,7 @@ def load_reports():
             data = r.__dict__.copy()
             data.pop("_sa_instance_state", None)
 
-            result.setdefault(r.Name, []).append(data)
+            result.setdefault(r.UserId, []).append(data)
 
         return result
 

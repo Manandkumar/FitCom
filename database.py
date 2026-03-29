@@ -37,3 +37,9 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+# Create tables automatically (safe)
+try:
+    import models
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print("Table creation error:", e)
