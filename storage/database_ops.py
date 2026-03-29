@@ -9,7 +9,7 @@ from models import Report, HIITSession
 
 
 # ============================================================
-# LOAD REPORTS (USER SPECIFIC)
+# LOAD REPORTS (USER)
 # ============================================================
 
 def load_reports():
@@ -57,8 +57,20 @@ def save_report(name, data):
 
 
 # ============================================================
-# LOAD HIIT SESSIONS
+# HIIT FUNCTIONS
 # ============================================================
+
+def save_hiit_session(data):
+    db = SessionLocal()
+
+    try:
+        session = HIITSession(**data)
+        db.add(session)
+        db.commit()
+
+    finally:
+        db.close()
+
 
 def load_hiit_sessions(user):
     db = SessionLocal()
@@ -86,7 +98,7 @@ def load_hiit_sessions(user):
 
 
 # ============================================================
-# LOAD ALL REPORTS (GLOBAL - FOR LEADERBOARD)
+# LOAD ALL REPORTS (GLOBAL)
 # ============================================================
 
 def load_all_reports():

@@ -1,170 +1,108 @@
 # ============================================================
-# FitCom - AI Coach (DB VERSION - STABLE)
+# FitCom - HIIT Analytics Dashboard
+# Author: Anand Kumar
 # ============================================================
 
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 
-from storage import load_reports
 from sidebar import render_sidebar
-from ui.theme import apply_theme
-from ui.components import page_header, section, card_start, card_end
+from storage import load_hiit_sessions
 
-# -------------------------------------------------------
-# INIT
-# -------------------------------------------------------
+
+st.set_page_config(page_title="HIIT Analytics", layout="wide")
 
 render_sidebar()
-apply_theme()
 
-page_header("AI Coach", "Personalized fitness insights")
+st.title("🏋️ HIIT Performance Dashboard")
 
-# -------------------------------------------------------
-# LOAD DATA (DB)
-# -------------------------------------------------------
+user = st.session_state.get("user")
 
-data = load_reports()
-
-if not data:
-    st.info("No reports available yet.")
+if not user:
+    st.error("Please login")
     st.stop()
 
-# Flatten DB data
-df = pd.DataFrame(
-    [item for sublist in data.values() for item in sublist]
-)
+# ============================================================
+# LOAD DATA
+# ============================================================
 
-# Ensure date format
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+sessions = load_hiit_sessions(user)
 
-# Drop invalid dates
-df = df.dropna(subset=["Date"])
-
-# -------------------------------------------------------
-# USER SELECTION
-# -------------------------------------------------------
-
-section("Select Member")
-
-card_start()
-
-users = sorted(df["Name"].dropna().unique())
-
-selected_user = st.selectbox("Choose Member", users)
-
-card_end()
-
-# -------------------------------------------------------
-# GET LATEST RECORD
-# -------------------------------------------------------
-
-user_df = df[df["Name"] == selected_user].sort_values("Date")
-
-if user_df.empty:
-    st.warning("No data found for this member.")
+if not sessions:
+    st.info("No HIIT sessions yet")
     st.stop()
 
-latest = user_df.iloc[-1]
+df = pd.DataFrame(sessions)
+df = df.sort_values(by="Date")
 
-# -------------------------------------------------------
-# SHOW LATEST METRICS
-# -------------------------------------------------------
+# ============================================================
+# METRICS
+# ============================================================
 
-section("Latest Metrics")
+st.subheader("📊 Performance Summary")
 
-card_start()
+col1, col2, col3 = st.columns(3)
 
-display_df = pd.DataFrame([latest]).drop(columns=["Photo"], errors="ignore")
+col1.metric("Total Workouts", len(df))
+col2.metric("Avg Calories", int(df["Calories"].mean()))
+col3.metric("Avg Heart Rate", int(df["HeartRate"].mean()))
 
-st.dataframe(display_df, use_container_width=True)
+st.markdown("---")
 
-card_end()
+# ============================================================
+# TRENDS
+# ============================================================
 
-# -------------------------------------------------------
-# AI COACH LOGIC (SAFE VERSION)
-# -------------------------------------------------------
+st.subheader("📈 Trends")
 
-def ai_coach(row):
+col1, col2 = st.columns(2)
 
-    tips = []
+with col1:
+    fig, ax = plt.subplots()
+    ax.plot(df["Date"], df["Calories"], marker='o')
+    ax.set_title("Calories Burn Trend")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
 
-    bmi = row.get("BMI", 0)
-    bodyfat = row.get("BodyFat", 0)
-    muscle = row.get("MuscleMass", 0)
-    water = row.get("BodyWater", 0)
-    visceral = row.get("VisceralFat", 0)
-    protein = row.get("ProteinRate", 0)
+with col2:
+    fig, ax = plt.subplots()
+    ax.plot(df["Date"], df["Duration"], marker='o')
+    ax.set_title("Workout Duration Trend")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
 
-    # BMI check
-    if bmi > 25:
-        tips.append("BMI is high. Focus on fat loss and calorie deficit.")
+st.markdown("---")
 
-    # Body fat
-    if bodyfat > 20:
-        tips.append("Body fat is above optimal. Add cardio and monitor diet.")
+# ============================================================
+# FITNESS SCORE
+# ============================================================
 
-    # Muscle mass
-    if muscle < 30:
-        tips.append("Muscle mass is low. Include strength training.")
+st.subheader("🔥 Fitness Score")
 
-    # Hydration
-    if water < 50:
-        tips.append("Hydration is low. Increase water intake.")
+score = 0
 
-    # Visceral fat
-    if visceral > 10:
-        tips.append("Visceral fat is high. Reduce sugar and processed food.")
+score += min(len(df) * 5, 50)
+score += min(df["Calories"].mean() / 10, 25)
+score += min(df["Duration"].mean() / 2, 25)
 
-    # Protein
-    if protein < 15:
-        tips.append("Protein intake is low. Increase protein consumption.")
+score = int(score)
 
-    return tips
+st.metric("Your Fitness Score", score)
 
-
-tips = ai_coach(latest)
-
-# -------------------------------------------------------
-# RECOMMENDATIONS
-# -------------------------------------------------------
-
-section("AI Recommendations")
-
-card_start()
-
-if tips:
-    for tip in tips:
-        st.success(tip)
+if score > 80:
+    st.success("Excellent fitness level 🔥")
+elif score > 60:
+    st.info("Good progress 💪")
 else:
-    st.success("Great job! All parameters are within healthy range 💪")
+    st.warning("Needs improvement 🚀")
 
-card_end()
+st.markdown("---")
 
-# -------------------------------------------------------
-# QUICK INSIGHT
-# -------------------------------------------------------
+# ============================================================
+# DATA TABLE
+# ============================================================
 
-section("Quick Insight")
+st.subheader("📋 HIIT Sessions")
 
-card_start()
-
-if len(user_df) > 1:
-    prev = user_df.iloc[-2]
-
-    weight_change = latest.get("Weight", 0) - prev.get("Weight", 0)
-    fat_change = latest.get("BodyFat", 0) - prev.get("BodyFat", 0)
-
-    st.write(f"Weight Change: **{round(weight_change,2)} kg**")
-    st.write(f"Body Fat Change: **{round(fat_change,2)} %**")
-
-    if weight_change < 0:
-        st.success("Positive trend in weight reduction 📉")
-    elif weight_change > 0:
-        st.warning("Weight increased. Review diet ⚠️")
-    else:
-        st.info("Weight stable")
-
-else:
-    st.info("Not enough data for trend insights")
-
-card_end()
+st.dataframe(df, use_container_width=True)

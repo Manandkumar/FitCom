@@ -7,5 +7,6 @@ from .database_ops import (
     load_reports,
     save_report,
     load_hiit_sessions,
+    save_hiit_session,
     load_all_reports
 )
