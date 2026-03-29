@@ -1,11 +1,12 @@
 # ============================================================
-# FitCom - Main Dashboard (FINAL STABLE VERSION)
+# FitCom - Main Dashboard (SaaS Clean Version)
 # ============================================================
 
 import streamlit as st
 import pandas as pd
 import os
 
+from ui.styles import apply_global_styles
 from sidebar import render_sidebar
 from storage import load_reports, load_hiit_sessions
 
@@ -18,6 +19,9 @@ st.set_page_config(
     page_icon="🏋️",
     layout="wide"
 )
+
+# ✅ Apply global styles FIRST
+apply_global_styles()
 
 # ------------------------------------------------------------
 # SIDEBAR
@@ -48,13 +52,14 @@ def calculate_fitness_score(row):
 
 
 # ------------------------------------------------------------
-# LOAD REPORT DATA (DB)
+# LOAD DATA
 # ------------------------------------------------------------
 
 data = load_reports()
 
+st.title("📊 FitCom Dashboard")
+
 if not data:
-    st.title("📊 FitCom Dashboard")
     st.info("No reports available yet.")
     st.stop()
 
@@ -66,17 +71,13 @@ df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 df = df.dropna(subset=["Date"])
 
 # ------------------------------------------------------------
-# DASHBOARD TITLE
-# ------------------------------------------------------------
-
-st.title("📊 FitCom Dashboard")
-
-# ------------------------------------------------------------
 # USER SELECTION
 # ------------------------------------------------------------
 
+st.markdown("### 👤 Select User")
+
 user = st.selectbox(
-    "Select User",
+    "",
     sorted(df["Name"].dropna().unique())
 )
 
@@ -84,46 +85,43 @@ user_df = df[df["Name"] == user].sort_values("Date")
 
 latest = user_df.iloc[-1]
 
+st.markdown("---")
+
 # ------------------------------------------------------------
-# PROFILE + METRICS
+# PROFILE + METRICS SECTION
 # ------------------------------------------------------------
 
-col1, col2 = st.columns([1, 3])
+col1, col2 = st.columns([1, 3], gap="large")
 
+# ---------------- PROFILE ----------------
 with col1:
+
+    st.markdown("### 👤 Profile")
 
     photo = latest.get("Photo", None)
 
-    # ✅ FIXED IMAGE HANDLING (URL + PATH + BINARY)
     if photo:
         try:
-            # Case 1: URL
             if isinstance(photo, str) and photo.startswith("http"):
                 st.image(photo, width=150)
-
-            # Case 2: Local file path
             elif isinstance(photo, str) and os.path.exists(photo):
                 st.image(photo, width=150)
-
-            # Case 3: Binary image (DB stored)
             elif isinstance(photo, (bytes, bytearray)):
                 st.image(photo, width=150)
-
             else:
                 st.image("https://via.placeholder.com/150", width=150)
-
-        except Exception:
+        except:
             st.image("https://via.placeholder.com/150", width=150)
-
     else:
         st.image("https://via.placeholder.com/150", width=150)
 
-    st.write(f"**Name:** {latest.get('Name','')}")
-    st.write(f"**Date:** {latest.get('Date','').strftime('%Y-%m-%d')}")
+    st.markdown(f"**Name:** {latest.get('Name','')}")
+    st.markdown(f"**Date:** {latest.get('Date','').strftime('%Y-%m-%d')}")
 
+# ---------------- METRICS ----------------
 with col2:
 
-    st.subheader("Latest Body Metrics")
+    st.markdown("### 📊 Latest Body Metrics")
 
     c1, c2, c3, c4 = st.columns(4)
 
@@ -132,18 +130,21 @@ with col2:
     c3.metric("Muscle Mass", latest.get("MuscleMass", "NA"))
     c4.metric("Visceral Fat", latest.get("VisceralFat", "NA"))
 
-    score = calculate_fitness_score(latest)
+    st.markdown("### 🧠 Fitness Score")
 
-    st.subheader("Fitness Score")
+    score = calculate_fitness_score(latest)
 
     st.progress(score / 100)
     st.metric("Score", f"{score}/100")
 
+st.markdown("---")
+
 # ------------------------------------------------------------
-# USER HISTORY
+# HISTORY
 # ------------------------------------------------------------
 
-st.subheader("User History")
+st.markdown("### 📜 User History")
+
 st.dataframe(user_df, use_container_width=True)
 
 # ------------------------------------------------------------
@@ -152,7 +153,7 @@ st.dataframe(user_df, use_container_width=True)
 
 if len(user_df) > 1:
 
-    st.subheader("Progress Chart")
+    st.markdown("### 📈 Progress Chart")
 
     available_cols = [
         col for col in ["Weight", "BodyFat", "MuscleMass"]
@@ -162,11 +163,13 @@ if len(user_df) > 1:
     if available_cols:
         st.line_chart(user_df.set_index("Date")[available_cols])
 
-# ============================================================
-# 🔥 HIIT DASHBOARD SECTION
-# ============================================================
+st.markdown("---")
 
-st.subheader("🔥 HIIT Activity")
+# ------------------------------------------------------------
+# HIIT SECTION
+# ------------------------------------------------------------
+
+st.markdown("### 🔥 HIIT Activity")
 
 hiit_data = load_hiit_sessions(user)
 
@@ -179,24 +182,26 @@ if hiit_data:
 
     latest_hiit = hiit_df.iloc[0]
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-    col1.metric("Last Workout", latest_hiit.get("Workout", "NA"))
-    col2.metric("Calories Burned", latest_hiit.get("Calories", 0))
-    col3.metric("Duration (min)", latest_hiit.get("Duration", 0))
+    c1.metric("Last Workout", latest_hiit.get("Workout", "NA"))
+    c2.metric("Calories Burned", latest_hiit.get("Calories", 0))
+    c3.metric("Duration (min)", latest_hiit.get("Duration", 0))
 
     if "Calories" in hiit_df.columns:
-        st.subheader("📈 Calories Burn Trend")
+        st.markdown("### 📈 Calories Burn Trend")
         st.line_chart(hiit_df.set_index("Date")["Calories"])
 
 else:
     st.info("No HIIT sessions available")
 
+st.markdown("---")
+
 # ------------------------------------------------------------
 # MOST IMPROVED ATHLETE
 # ------------------------------------------------------------
 
-st.subheader("🔥 Most Improved Athlete")
+st.markdown("### 🏆 Most Improved Athlete")
 
 improvements = []
 
