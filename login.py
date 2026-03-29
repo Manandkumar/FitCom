@@ -1,30 +1,50 @@
 # ============================================================
-# FitCom - Login Module
+# FitCom - Supabase Auth Login
 # Author: Anand Kumar
 # ============================================================
 
 import streamlit as st
+from storage.supabase_storage import sign_in, sign_up
 
 
 def login():
-    """
-    Simple session-based login.
-    (Can be upgraded later to Supabase Auth)
-    """
 
     st.title("🔐 FitCom Login")
 
-    st.markdown("### Enter your credentials")
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    # --------------------------------------------------------
+    # LOGIN
+    # --------------------------------------------------------
+    with tab1:
 
-    if st.button("Login", use_container_width=True):
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
 
-        # Basic validation (placeholder auth)
-        if username and password:
-            st.session_state["user"] = username
-            st.success(f"Welcome {username} 👋")
-            st.rerun()
-        else:
-            st.error("Please enter username and password")
+        if st.button("Login", use_container_width=True):
+
+            res = sign_in(email, password)
+
+            if res and res.user:
+                st.session_state["user"] = res.user.email
+                st.success("Login successful ✅")
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
+
+    # --------------------------------------------------------
+    # SIGN UP
+    # --------------------------------------------------------
+    with tab2:
+
+        email = st.text_input("New Email")
+        password = st.text_input("New Password", type="password")
+
+        if st.button("Create Account", use_container_width=True):
+
+            res = sign_up(email, password)
+
+            if res:
+                st.success("Account created. Please login.")
+            else:
+                st.error("Signup failed")
