@@ -1,135 +1,82 @@
 # ============================================================
-# FitCom - Athlete Comparison (DB VERSION - STABLE)
+# FitCom - Leaderboard
+# Author: Anand Kumar
 # ============================================================
 
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 
-from storage import load_reports
 from sidebar import render_sidebar
+from storage import load_all_reports
 
-# -------------------------------------------------------
-# INIT
-# -------------------------------------------------------
+
+# ============================================================
+# PAGE CONFIG
+# ============================================================
+
+st.set_page_config(page_title="Leaderboard", layout="wide")
 
 render_sidebar()
 
-st.title("🏅 Athlete Comparison")
+st.title("🏆 Leaderboard")
+st.caption("Compare fitness metrics across all users")
 
-# -------------------------------------------------------
-# LOAD DATA (DB)
-# -------------------------------------------------------
+st.markdown("---")
 
-data = load_reports()
+
+# ============================================================
+# LOAD DATA
+# ============================================================
+
+data = load_all_reports()
 
 if not data:
-    st.info("No reports available yet.")
+    st.info("No data available")
     st.stop()
 
-# Flatten DB data
-df = pd.DataFrame(
-    [item for sublist in data.values() for item in sublist]
-)
+df = pd.DataFrame(data)
 
-# Ensure Date column is proper datetime
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+# Ensure sorting by Date
+df = df.sort_values(by="Date")
 
-# Drop invalid dates
-df = df.dropna(subset=["Date"])
+# Get latest record per user
+latest_df = df.groupby("UserId").tail(1)
 
-# -------------------------------------------------------
-# CLEAN DATA FOR UI
-# -------------------------------------------------------
 
-df_display = df.drop(columns=["Age"], errors="ignore")
+# ============================================================
+# TOP PERFORMERS
+# ============================================================
 
-# -------------------------------------------------------
-# USER SELECTION
-# -------------------------------------------------------
+st.subheader("🥇 Top Performers")
 
-athletes = sorted(df["Name"].dropna().unique())
+col1, col2, col3 = st.columns(3)
 
-selected = st.multiselect(
-    "Select athletes to compare",
-    athletes,
-    default=athletes[:2] if len(athletes) >= 2 else athletes
-)
+# Lowest Body Fat
+if "BodyFat" in latest_df.columns:
+    best_fat = latest_df.sort_values(by="BodyFat").head(5)
+    col1.markdown("### 🔥 Lowest Body Fat")
+    col1.dataframe(best_fat[["UserId", "BodyFat"]], use_container_width=True)
 
-# Handle empty selection
-if len(selected) == 0:
-    st.info("Select at least one athlete.")
-    st.stop()
+# Highest Muscle Mass
+if "MuscleMass" in latest_df.columns:
+    best_muscle = latest_df.sort_values(by="MuscleMass", ascending=False).head(5)
+    col2.markdown("### 💪 Highest Muscle")
+    col2.dataframe(best_muscle[["UserId", "MuscleMass"]], use_container_width=True)
 
-# Filter selected athletes
-compare_df = df[df["Name"].isin(selected)]
+# Best BMI (closest to 22)
+if "BMI" in latest_df.columns:
+    latest_df["BMI_diff"] = (latest_df["BMI"] - 22).abs()
+    best_bmi = latest_df.sort_values(by="BMI_diff").head(5)
+    col3.markdown("### ⚖️ Best BMI")
+    col3.dataframe(best_bmi[["UserId", "BMI"]], use_container_width=True)
 
-# -------------------------------------------------------
-# GET LATEST RECORD PER ATHLETE
-# -------------------------------------------------------
+st.markdown("---")
 
-latest = (
-    compare_df
-    .sort_values("Date")
-    .groupby("Name")
-    .tail(1)
-    .set_index("Name")
-)
 
-# Remove Age from display table
-latest_display = latest.drop(columns=["Age"], errors="ignore")
+# ============================================================
+# FULL TABLE
+# ============================================================
 
-# -------------------------------------------------------
-# DISPLAY TABLE
-# -------------------------------------------------------
+st.subheader("📋 All Users")
 
-st.subheader("📊 Latest Metrics")
-st.dataframe(latest_display, use_container_width=True)
-
-# -------------------------------------------------------
-# BAR CHART COMPARISON
-# -------------------------------------------------------
-
-st.subheader("📊 Metric Comparison")
-
-metrics = ["BMI", "BodyFat", "MuscleMass", "BodyWater", "VisceralFat"]
-
-available_metrics = [m for m in metrics if m in latest.columns]
-
-if available_metrics:
-    st.bar_chart(latest[available_metrics])
-else:
-    st.warning("No comparable metrics available.")
-
-# -------------------------------------------------------
-# RADAR CHART
-# -------------------------------------------------------
-
-st.subheader("🕸️ Body Composition Radar")
-
-fig = go.Figure()
-
-for athlete in latest.index:
-
-    values = []
-    labels = []
-
-    for metric in metrics:
-        if metric in latest.columns:
-            val = latest.loc[athlete].get(metric, 0)
-            values.append(val if pd.notna(val) else 0)
-            labels.append(metric)
-
-    fig.add_trace(go.Scatterpolar(
-        r=values,
-        theta=labels,
-        fill="toself",
-        name=athlete
-    ))
-
-fig.update_layout(
-    polar=dict(radialaxis=dict(visible=True)),
-    showlegend=True
-)
-
-st.plotly_chart(fig, use_container_width=True)
+st.dataframe(latest_df, use_container_width=True)

@@ -8,6 +8,10 @@ from database import SessionLocal
 from models import Report, HIITSession
 
 
+# ============================================================
+# LOAD REPORTS (USER SPECIFIC)
+# ============================================================
+
 def load_reports():
     db = SessionLocal()
 
@@ -36,6 +40,10 @@ def load_reports():
         db.close()
 
 
+# ============================================================
+# SAVE REPORT
+# ============================================================
+
 def save_report(name, data):
     db = SessionLocal()
 
@@ -47,6 +55,10 @@ def save_report(name, data):
     finally:
         db.close()
 
+
+# ============================================================
+# LOAD HIIT SESSIONS
+# ============================================================
 
 def load_hiit_sessions(user):
     db = SessionLocal()
@@ -64,6 +76,31 @@ def load_hiit_sessions(user):
 
         for s in sessions:
             data = s.__dict__.copy()
+            data.pop("_sa_instance_state", None)
+            result.append(data)
+
+        return result
+
+    finally:
+        db.close()
+
+
+# ============================================================
+# LOAD ALL REPORTS (GLOBAL - FOR LEADERBOARD)
+# ============================================================
+
+def load_all_reports():
+    db = SessionLocal()
+
+    try:
+        reports = db.query(Report).filter(
+            Report.IsDeleted == False
+        ).all()
+
+        result = []
+
+        for r in reports:
+            data = r.__dict__.copy()
             data.pop("_sa_instance_state", None)
             result.append(data)
 
