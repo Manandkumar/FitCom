@@ -1,15 +1,15 @@
 # ============================================================
-# FitCom - Sidebar Navigation (Final Polished Version)
-# Author: Anand Kumar
+# FitCom - Sidebar Navigation (SaaS Stable Version)
 # ============================================================
 
 import streamlit as st
+import os
 
 
 def render_sidebar():
 
     # -------------------------------------------------------
-    # GLOBAL STYLING
+    # SIDEBAR STYLING (STABLE + NO CONFLICTS)
     # -------------------------------------------------------
 
     st.markdown("""
@@ -20,35 +20,36 @@ def render_sidebar():
         display: none;
     }
 
-    /* Sidebar base */
+    /* Sidebar container */
     section[data-testid="stSidebar"] {
+        width: 260px !important;
+        min-width: 260px !important;
+        max-width: 260px !important;
         background-color: #F7F9FB;
         border-right: 1px solid #E6EAF0;
     }
 
-    /* Remove top padding */
-    section[data-testid="stSidebar"] > div {
-        padding-top: 0rem;
+    /* Sidebar padding */
+    section[data-testid="stSidebar"] .block-container {
+        padding-top: 1rem;
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
     }
 
-    /* Text */
+    /* Typography */
     section[data-testid="stSidebar"] * {
-        color: #2C2C2C !important;
         font-size: 14px;
+        color: #2C2C2C;
     }
 
-    /* -------------------------------------------------- */
-    /* LOGO */
-    /* -------------------------------------------------- */
+    /* Logo */
     .logo-box {
-        padding: 12px 10px;
+        padding: 10px 6px;
+        margin-bottom: 10px;
         border-bottom: 1px solid #E6EAF0;
-        margin-bottom: 8px;
     }
 
-    /* -------------------------------------------------- */
-    /* NAV LINKS */
-    /* -------------------------------------------------- */
+    /* Navigation links */
     section[data-testid="stSidebar"] a {
         display: block;
         padding: 10px 12px;
@@ -59,13 +60,13 @@ def render_sidebar():
         transition: all 0.15s ease;
     }
 
-    /* Hover */
+    /* Hover effect */
     section[data-testid="stSidebar"] a:hover {
         background: rgba(31,167,161,0.08);
         color: #1FA7A1 !important;
     }
 
-    /* Active (STRONG FIX) */
+    /* Active page */
     section[data-testid="stSidebar"] a[aria-current="page"] {
         background: #1FA7A1 !important;
         color: white !important;
@@ -82,81 +83,86 @@ def render_sidebar():
     }
 
     /* Footer */
-    .footer {
+    .sidebar-footer {
         font-size: 12px;
         color: #888;
-        margin-top: 10px;
+        margin-top: 12px;
+        text-align: center;
     }
 
     </style>
     """, unsafe_allow_html=True)
 
     # -------------------------------------------------------
-    # LOGO
+    # SIDEBAR CONTENT
     # -------------------------------------------------------
 
-    st.sidebar.markdown("<div class='logo-box'>", unsafe_allow_html=True)
-    st.sidebar.image("logo.png", width="stretch")
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+    with st.sidebar:
 
-    # -------------------------------------------------------
-    # MAIN NAVIGATION
-    # -------------------------------------------------------
+        # ---------------- LOGO ----------------
+        st.markdown("<div class='logo-box'>", unsafe_allow_html=True)
 
-    st.sidebar.page_link("Dashboard.py", label="🏠 Dashboard")
+        if os.path.exists("logo.png"):
+            st.image("logo.png", width="stretch")
+        else:
+            st.markdown("### 🏋️ FitCom")
 
-    st.sidebar.page_link(
-        "pages/9_Member_Dashboard.py",
-        label="👤 Individual Board"
-    )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    st.sidebar.page_link(
-        "pages/2_Progress.py",
-        label="📊 Progress"
-    )
+        # ---------------- NAVIGATION ----------------
 
-    st.sidebar.page_link(
-        "pages/1_Add_NewMember.py",
-        label="➕ Add Member"
-    )
+        st.page_link("Dashboard.py", label="🏠 Dashboard")
 
-    st.sidebar.page_link(
-        "pages/3_Leaderboard.py",
-        label="🏆 Leaderboard"
-    )
+        st.page_link(
+            "pages/9_Member_Dashboard.py",
+            label="👤 Individual Board"
+        )
 
-    st.sidebar.page_link(
-        "pages/4_AI_Coach.py",
-        label="🤖 AI Coach"
-    )
+        st.page_link(
+            "pages/2_Progress.py",
+            label="📊 Progress"
+        )
 
-    st.sidebar.page_link(
-        "pages/5_Athlete_Comparison.py",
-        label="⚖️ Comparison"
-    )
+        st.page_link(
+            "pages/1_Add_NewMember.py",
+            label="➕ Add Member"
+        )
 
-    st.sidebar.page_link(
-        "pages/6_Edit_Report.py",
-        label="✏️ Edit Report"
-    )
+        st.page_link(
+            "pages/3_Leaderboard.py",
+            label="🏆 Leaderboard"
+        )
 
-    st.sidebar.page_link(
-        "pages/8_Weekly_Report.py",
-        label="📅 Weekly Report"
-    )
+        st.page_link(
+            "pages/4_AI_Coach.py",
+            label="🤖 AI Coach"
+        )
 
-    st.sidebar.page_link(
-        "pages/7_Admin_Dashboard.py",
-        label="⚙️ Admin"
-    )
+        st.page_link(
+            "pages/5_Athlete_Comparison.py",
+            label="⚖️ Comparison"
+        )
 
-    st.sidebar.markdown("---")
+        st.page_link(
+            "pages/6_Edit_Report.py",
+            label="✏️ Edit Report"
+        )
 
-    # -------------------------------------------------------
-    # FOOTER
-    # -------------------------------------------------------
+        st.page_link(
+            "pages/8_Weekly_Report.py",
+            label="📅 Weekly Report"
+        )
 
-    st.sidebar.markdown(
-        "<div class='footer'>📧 manandkumar@gmail.com</div>",
-        unsafe_allow_html=True
-    )
+        st.page_link(
+            "pages/7_Admin_Dashboard.py",
+            label="⚙️ Admin"
+        )
+
+        st.markdown("---")
+
+        # ---------------- FOOTER ----------------
+
+        st.markdown(
+            "<div class='sidebar-footer'>📧 manandkumar@gmail.com</div>",
+            unsafe_allow_html=True
+        )
