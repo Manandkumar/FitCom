@@ -66,3 +66,42 @@ def calculate_fitness_score(row):
         score -= (50 - row["BodyWater"]) * 1.5
 
     return max(0, round(score))
+
+def calculate_health_score(data):
+    score = 0
+
+    # BMI
+    bmi = data.get("BMI", 0)
+    if 18.5 <= bmi <= 24.9:
+        score += 20
+    elif 25 <= bmi <= 29.9:
+        score += 10
+
+    # Body Fat
+    bf = data.get("BodyFat", 0)
+    if 10 <= bf <= 20:
+        score += 20
+    elif 20 < bf <= 25:
+        score += 10
+
+    # Muscle Mass
+    mm = data.get("MuscleMass", 0)
+    if mm > 40:
+        score += 15
+
+    # Visceral Fat
+    vf = data.get("VisceralFat", 0)
+    if vf < 10:
+        score += 15
+
+    # BMR
+    bmr = data.get("BMR", 0)
+    if bmr > 1200:
+        score += 10
+
+    # Weight consistency
+    wt = data.get("Weight", 0)
+    if 50 <= wt <= 90:
+        score += 10
+
+    return min(score, 100)
