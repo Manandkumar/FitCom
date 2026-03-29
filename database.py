@@ -1,75 +1,63 @@
 # ============================================================
-# FitCom - Database Operations
+# FitCom - Database Configuration
 # Author: Anand Kumar
 # ============================================================
 
+import os
 import streamlit as st
-
-# Absolute imports (now will work because of config fix)
-from database import SessionLocal
-from models import Report, HIITSession
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 
-def load_reports():
-    db = SessionLocal()
+# ============================================================
+# DATABASE URL
+# ============================================================
 
-    try:
-        user = st.session_state.get("user")
-
-        if not user:
-            return {}
-
-        reports = db.query(Report).filter(
-            Report.IsDeleted == False,
-            Report.UserId == user
-        ).all()
-
-        result = {}
-
-        for r in reports:
-            data = r.__dict__.copy()
-            data.pop("_sa_instance_state", None)
-
-            result.setdefault(r.Name, []).append(data)
-
-        return result
-
-    finally:
-        db.close()
-
-
-def save_report(name, data):
-    db = SessionLocal()
+def get_database_url():
+    """
+    Load DB URL safely
+    """
 
     try:
-        report = Report(**data)
-        db.add(report)
-        db.commit()
-
-    finally:
-        db.close()
+        return st.secrets["DATABASE_URL"]
+    except Exception:
+        return os.getenv("DATABASE_URL", "sqlite:///./fitcom.db")
 
 
-def load_hiit_sessions(user):
-    db = SessionLocal()
+DATABASE_URL = get_database_url()
 
-    try:
-        if not user:
-            return []
 
-        sessions = db.query(HIITSession).filter(
-            HIITSession.UserId == user,
-            HIITSession.IsDeleted == False
-        ).all()
+# ============================================================
+# ENGINE
+# ============================================================
 
-        result = []
+connect_args = {}
 
-        for s in sessions:
-            data = s.__dict__.copy()
-            data.pop("_sa_instance_state", None)
-            result.append(data)
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
 
-        return result
 
-    finally:
-        db.close()
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    echo=False
+)
+
+
+# ============================================================
+# SESSION
+# ============================================================
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+
+# ============================================================
+# BASE
+# ============================================================
+
+Base = declarative_base()
