@@ -7,3 +7,4 @@ plotly
 numpy
 psycopg2-binary 
 opencv-python-headless
+matplotlib
