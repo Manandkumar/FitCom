@@ -1,21 +1,28 @@
 # ============================================================
-# FitCom - HIIT Analytics Dashboard
+# FitCom - AI Coach (Personalized Insights)
 # Author: Anand Kumar
 # ============================================================
 
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from sidebar import render_sidebar
-from storage import load_hiit_sessions
+from storage import load_reports, load_hiit_sessions
 
 
-st.set_page_config(page_title="HIIT Analytics", layout="wide")
+# ============================================================
+# PAGE CONFIG
+# ============================================================
+
+st.set_page_config(page_title="AI Coach", layout="wide")
 
 render_sidebar()
 
-st.title("🏋️ HIIT Performance Dashboard")
+st.title("🤖 AI Fitness Coach")
+
+# ============================================================
+# USER CHECK
+# ============================================================
 
 user = st.session_state.get("user")
 
@@ -27,82 +34,125 @@ if not user:
 # LOAD DATA
 # ============================================================
 
-sessions = load_hiit_sessions(user)
+report_data = load_reports()
+hiit_data = load_hiit_sessions(user)
 
-if not sessions:
-    st.info("No HIIT sessions yet")
+# Flatten report data
+records = []
+for _, entries in report_data.items():
+    for r in entries:
+        records.append(r)
+
+if not records:
+    st.info("Add body records first")
     st.stop()
 
-df = pd.DataFrame(sessions)
-df = df.sort_values(by="Date")
+df_body = pd.DataFrame(records)
+df_body = df_body.sort_values(by="Date")
+
+latest = df_body.iloc[-1]
 
 # ============================================================
-# METRICS
+# AI ANALYSIS
 # ============================================================
 
-st.subheader("📊 Performance Summary")
+st.subheader("🧠 Your Fitness Insights")
 
-col1, col2, col3 = st.columns(3)
+insights = []
 
-col1.metric("Total Workouts", len(df))
-col2.metric("Avg Calories", int(df["Calories"].mean()))
-col3.metric("Avg Heart Rate", int(df["HeartRate"].mean()))
+# ------------------------------------------------------------
+# BMI ANALYSIS
+# ------------------------------------------------------------
+bmi = latest.get("BMI", 0)
 
-st.markdown("---")
-
-# ============================================================
-# TRENDS
-# ============================================================
-
-st.subheader("📈 Trends")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    fig, ax = plt.subplots()
-    ax.plot(df["Date"], df["Calories"], marker='o')
-    ax.set_title("Calories Burn Trend")
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
-
-with col2:
-    fig, ax = plt.subplots()
-    ax.plot(df["Date"], df["Duration"], marker='o')
-    ax.set_title("Workout Duration Trend")
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
-
-st.markdown("---")
-
-# ============================================================
-# FITNESS SCORE
-# ============================================================
-
-st.subheader("🔥 Fitness Score")
-
-score = 0
-
-score += min(len(df) * 5, 50)
-score += min(df["Calories"].mean() / 10, 25)
-score += min(df["Duration"].mean() / 2, 25)
-
-score = int(score)
-
-st.metric("Your Fitness Score", score)
-
-if score > 80:
-    st.success("Excellent fitness level 🔥")
-elif score > 60:
-    st.info("Good progress 💪")
+if bmi < 18.5:
+    insights.append("⚠️ You are underweight. Consider a calorie surplus diet.")
+elif bmi < 25:
+    insights.append("✅ Your BMI is in a healthy range. Maintain consistency.")
 else:
-    st.warning("Needs improvement 🚀")
+    insights.append("⚠️ BMI is high. Focus on fat loss and HIIT training.")
+
+# ------------------------------------------------------------
+# BODY FAT ANALYSIS
+# ------------------------------------------------------------
+fat = latest.get("BodyFat", 0)
+
+if fat > 25:
+    insights.append("⚠️ Body fat is high. Increase cardio and reduce sugar intake.")
+else:
+    insights.append("✅ Body fat is under control. Keep it up!")
+
+# ------------------------------------------------------------
+# WEIGHT TREND
+# ------------------------------------------------------------
+if len(df_body) > 1:
+    if df_body.iloc[-1]["Weight"] > df_body.iloc[0]["Weight"]:
+        insights.append("📈 Your weight is increasing over time.")
+    else:
+        insights.append("📉 Your weight is decreasing. Good progress!")
+
+# ------------------------------------------------------------
+# HIIT ANALYSIS
+# ------------------------------------------------------------
+if hiit_data:
+    df_hiit = pd.DataFrame(hiit_data)
+
+    avg_calories = df_hiit["Calories"].mean()
+    workouts = len(df_hiit)
+
+    if workouts < 3:
+        insights.append("⚠️ Low workout frequency. Aim for 3–4 sessions per week.")
+    else:
+        insights.append("💪 Great workout consistency!")
+
+    if avg_calories < 200:
+        insights.append("🔥 Increase workout intensity to burn more calories.")
+    else:
+        insights.append("🔥 Good calorie burn. Keep pushing!")
+
+else:
+    insights.append("⚠️ No HIIT sessions logged. Start training to improve fitness.")
+
+# ============================================================
+# DISPLAY INSIGHTS
+# ============================================================
+
+for i in insights:
+    st.write(i)
 
 st.markdown("---")
 
 # ============================================================
-# DATA TABLE
+# ACTION PLAN
 # ============================================================
 
-st.subheader("📋 HIIT Sessions")
+st.subheader("📋 Recommended Action Plan")
 
-st.dataframe(df, use_container_width=True)
+actions = []
+
+if bmi > 25:
+    actions.append("🏃 Do HIIT workouts 4x per week")
+    actions.append("🥗 Maintain calorie deficit diet")
+
+if fat > 25:
+    actions.append("🚫 Reduce sugar & processed food")
+    actions.append("🥦 Increase protein intake")
+
+if hiit_data:
+    actions.append("📅 Maintain workout consistency")
+
+actions.append("💧 Drink at least 3L water daily")
+actions.append("😴 Sleep 7-8 hours")
+
+for a in actions:
+    st.write(a)
+
+st.markdown("---")
+
+# ============================================================
+# MOTIVATION
+# ============================================================
+
+st.subheader("🔥 Motivation")
+
+st.success("Consistency beats intensity. Keep showing up every day 💪")
