@@ -1,0 +1,8 @@
+[server]
+runOnSave = true
+
+[global]
+developmentMode = false
+
+[runner]
+pythonPath = "."
