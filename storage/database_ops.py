@@ -4,6 +4,20 @@
 # ============================================================
 
 import streamlit as st
+import sys
+import os
+
+# ------------------------------------------------------------
+# FIX: Ensure project root is accessible (IMPORTANT)
+# ------------------------------------------------------------
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
+
+# Now safe to import
 from database import SessionLocal
 from models import Report, HIITSession
 
@@ -36,10 +50,9 @@ def load_reports():
             data = r.__dict__.copy()
 
             # Remove SQLAlchemy internal key
-            if "_sa_instance_state" in data:
-                del data["_sa_instance_state"]
+            data.pop("_sa_instance_state", None)
 
-            # Group by Name
+            # Group reports by Name
             if r.Name not in result:
                 result[r.Name] = []
 
@@ -103,8 +116,8 @@ def load_hiit_sessions(user):
         for s in sessions:
             data = s.__dict__.copy()
 
-            if "_sa_instance_state" in data:
-                del data["_sa_instance_state"]
+            # Remove SQLAlchemy internal key
+            data.pop("_sa_instance_state", None)
 
             result.append(data)
 
