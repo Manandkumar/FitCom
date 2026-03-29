@@ -1,105 +1,69 @@
-# -------------------------------------------------------
-# FitCom - Database Models (SUPABASE READY)
-# -------------------------------------------------------
-
 from sqlalchemy import Column, Integer, String, Float, Boolean
 from database import Base
 
 
-# =======================================================
-# REPORT TABLE
-# =======================================================
-
 class Report(Base):
     __tablename__ = "reports"
 
-    # Primary Key
     id = Column(Integer, primary_key=True, index=True)
 
-    # User Info
+    # ✅ NEW
+    UserId = Column(String, index=True)
+
     Name = Column(String, index=True, nullable=False)
-    Gender = Column(String, nullable=True)
-    Date = Column(String, index=True, nullable=False)
-    Photo = Column(String, nullable=True)
+    Gender = Column(String)
+    Date = Column(String)
+    Photo = Column(String)
 
-    # Basic Metrics
-    Age = Column(Integer, nullable=True)
-    Height = Column(Float, nullable=True)
-    Weight = Column(Float, nullable=True)
+    Age = Column(Integer)
+    Height = Column(Float)
+    Weight = Column(Float)
 
-    # Body Composition
-    BMI = Column(Float, nullable=True)
-    BodyFat = Column(Float, nullable=True)
-    FatMass = Column(Float, nullable=True)
-    FatFreeBodyWeight = Column(Float, nullable=True)
+    BMI = Column(Float)
+    BodyFat = Column(Float)
+    FatMass = Column(Float)
+    FatFreeBodyWeight = Column(Float)
 
-    # Muscle
-    MuscleMass = Column(Float, nullable=True)
-    MuscleRate = Column(Float, nullable=True)
-    SkeletalMuscle = Column(Float, nullable=True)
+    MuscleMass = Column(Float)
+    MuscleRate = Column(Float)
+    SkeletalMuscle = Column(Float)
 
-    # Body Details
-    BoneMass = Column(Float, nullable=True)
-    SubcutaneousFat = Column(Float, nullable=True)
+    BoneMass = Column(Float)
+    SubcutaneousFat = Column(Float)
 
-    # Hydration
-    BodyWater = Column(Float, nullable=True)
-    WaterWeight = Column(Float, nullable=True)
+    BodyWater = Column(Float)
+    WaterWeight = Column(Float)
 
-    # Protein
-    ProteinMass = Column(Float, nullable=True)
-    ProteinRate = Column(Float, nullable=True)
+    ProteinMass = Column(Float)
+    ProteinRate = Column(Float)
 
-    # Health Metrics
-    VisceralFat = Column(Float, nullable=True)
-    BMR = Column(Float, nullable=True)
-    BodyAge = Column(Integer, nullable=True)
-    WHR = Column(Float, nullable=True)
+    VisceralFat = Column(Float)
+    BMR = Column(Float)
+    BodyAge = Column(Integer)
+    WHR = Column(Float)
 
-    # Target
-    IdealBodyWeight = Column(Float, nullable=True)
+    IdealBodyWeight = Column(Float)
 
-    # Soft Delete
-    IsDeleted = Column(Boolean, default=False, nullable=False, index=True)
+    IsDeleted = Column(Boolean, default=False)
 
-
-# =======================================================
-# HIIT WORKOUT TABLE
-# =======================================================
 
 class HIITSession(Base):
     __tablename__ = "hiit_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
 
-    Name = Column(String, index=True, nullable=False)
-    Date = Column(String, index=True, nullable=False)
+    # ✅ NEW
+    UserId = Column(String, index=True)
 
-    Workout = Column(String, nullable=True)
-    Duration = Column(Integer, nullable=True)
+    Name = Column(String)
+    Date = Column(String)
 
-    Calories = Column(Integer, nullable=True)
-    HeartRate = Column(Integer, nullable=True)
+    Workout = Column(String)
+    Duration = Column(Integer)
 
-    Notes = Column(String, nullable=True)
+    Calories = Column(Integer)
+    HeartRate = Column(Integer)
 
-    # Soft Delete
-    IsDeleted = Column(Boolean, default=False, nullable=False, index=True)
+    Notes = Column(String)
 
-
-# -------------------------------------------------------
-# CREATE TABLES (SAFE TO RUN MULTIPLE TIMES)
-# -------------------------------------------------------
-
-from database import engine
-
-def create_tables():
-    """
-    Explicit table creation function.
-    Called once when app starts.
-    """
-    Base.metadata.create_all(bind=engine)
-
-
-# Call once on import
-create_tables()
+    IsDeleted = Column(Boolean, default=False)
