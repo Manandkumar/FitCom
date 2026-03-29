@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Login (Supabase Auth)
+# FitCom - Login (Fixed)
 # Author: Anand Kumar
 # ============================================================
 
@@ -13,28 +13,36 @@ def login():
 
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
+    # ---------------- LOGIN ----------------
     with tab1:
+
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
 
         if st.button("Login", use_container_width=True):
+
             res = sign_in(email, password)
 
             if res and res.user:
                 st.session_state["user"] = res.user.email
+                st.session_state["access_token"] = res.session.access_token
                 st.success("Login successful")
                 st.rerun()
-            else:
-                st.error("Invalid credentials")
 
+            else:
+                st.error("Invalid email or password")
+
+    # ---------------- SIGNUP ----------------
     with tab2:
+
         email = st.text_input("New Email")
         password = st.text_input("New Password", type="password")
 
         if st.button("Create Account", use_container_width=True):
+
             res = sign_up(email, password)
 
-            if res:
+            if res and res.user:
                 st.success("Account created. Please login.")
             else:
-                st.error("Signup failed")
+                st.error("Signup failed. Check Supabase settings.")
