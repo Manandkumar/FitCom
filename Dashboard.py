@@ -8,17 +8,18 @@ import matplotlib.pyplot as plt
 
 from sidebar import render_sidebar
 from storage import load_reports
-from storage.database_ops import load_hiit_sessions
+from storage import load_hiit_sessions
 from utils import calculate_health_score
 
 st.set_page_config(layout="wide")
-render_sidebar()
+from login import login
 
 user = st.session_state.get("user")
 
 if not user:
     st.error("Login required")
     st.stop()
+render_sidebar()
 
 st.title("🏠 My Fitness Dashboard")
 

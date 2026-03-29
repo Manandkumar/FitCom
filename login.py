@@ -4,7 +4,10 @@
 # ============================================================
 
 import streamlit as st
-from storage.supabase_storage import sign_in, sign_up
+try:
+    from storage.supabase_storage import sign_in, sign_up
+except Exception as e:
+    st.error(f"Auth system error: {e}")
 
 
 def login():
