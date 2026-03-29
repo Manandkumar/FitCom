@@ -2,6 +2,17 @@
 # FitCom - Main Dashboard (SaaS Clean Version)
 # ============================================================
 
+# ============================================================
+# LOGIN PROTECTION
+# ============================================================
+
+import streamlit as st
+
+if "user" not in st.session_state:
+    from login import login
+    login()
+    st.stop()
+
 import streamlit as st
 import pandas as pd
 import os

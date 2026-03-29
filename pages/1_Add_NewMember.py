@@ -197,10 +197,11 @@ if st.button("Save Report", use_container_width=True):
     else:
         try:
             report = {
+                "UserId": st.session_state["user"],   # ✅ IMPORTANT
                 "Name": name,
                 "Gender": gender,
                 "Date": datetime.now().strftime("%Y-%m-%d"),
-                "Photo": image_url,  # ✅ URL instead of file path
+                "Photo": image_url,
                 "Age": int(age),
                 "Height": float(height),
                 "Weight": float(weight),

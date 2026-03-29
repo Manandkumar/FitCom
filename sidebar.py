@@ -166,3 +166,13 @@ def render_sidebar():
             "<div class='sidebar-footer'>📧 manandkumar@gmail.com</div>",
             unsafe_allow_html=True
         )
+
+# ============================================================
+# LOGOUT
+# ============================================================
+
+st.markdown("---")
+
+if st.button("🚪 Logout"):
+    st.session_state.clear()
+    st.rerun()
