@@ -4,32 +4,11 @@
 # ============================================================
 
 import streamlit as st
-import sys
-import os
-
-# ------------------------------------------------------------
-# FIX: Ensure project root is in Python path
-# ------------------------------------------------------------
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-if BASE_DIR not in sys.path:
-    sys.path.insert(0, BASE_DIR)
-
-# Now imports will work reliably
 from database import SessionLocal
 from models import Report, HIITSession
 
 
-# ============================================================
-# LOAD REPORTS
-# ============================================================
-
 def load_reports():
-    """
-    Load reports for the logged-in user only.
-    """
-
     db = SessionLocal()
 
     try:
@@ -53,23 +32,11 @@ def load_reports():
 
         return result
 
-    except Exception as e:
-        print("Error loading reports:", e)
-        return {}
-
     finally:
         db.close()
 
 
-# ============================================================
-# SAVE REPORT
-# ============================================================
-
 def save_report(name, data):
-    """
-    Save report into database.
-    """
-
     db = SessionLocal()
 
     try:
@@ -77,22 +44,11 @@ def save_report(name, data):
         db.add(report)
         db.commit()
 
-    except Exception as e:
-        print("Error saving report:", e)
-
     finally:
         db.close()
 
 
-# ============================================================
-# LOAD HIIT SESSIONS
-# ============================================================
-
 def load_hiit_sessions(user):
-    """
-    Load HIIT sessions for logged-in user.
-    """
-
     db = SessionLocal()
 
     try:
@@ -112,10 +68,6 @@ def load_hiit_sessions(user):
             result.append(data)
 
         return result
-
-    except Exception as e:
-        print("Error loading HIIT:", e)
-        return []
 
     finally:
         db.close()
