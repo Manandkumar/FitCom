@@ -6,11 +6,11 @@
 import streamlit as st
 
 # ------------------------------------------------------------
-# PROPER PACKAGE IMPORTS (NO HACKS)
+# ABSOLUTE IMPORTS (STREAMLIT SAFE)
 # ------------------------------------------------------------
 
-from ..database import SessionLocal
-from ..models import Report, HIITSession
+from database import SessionLocal
+from models import Report, HIITSession
 
 
 # ============================================================
@@ -20,7 +20,6 @@ from ..models import Report, HIITSession
 def load_reports():
     """
     Load reports for the logged-in user only.
-    Groups data by Name.
     """
 
     db = SessionLocal()
@@ -31,7 +30,6 @@ def load_reports():
         if not user:
             return {}
 
-        # Fetch only user-specific active reports
         reports = db.query(Report).filter(
             Report.IsDeleted == False,
             Report.UserId == user
@@ -41,11 +39,8 @@ def load_reports():
 
         for r in reports:
             data = r.__dict__.copy()
-
-            # Remove SQLAlchemy internal metadata
             data.pop("_sa_instance_state", None)
 
-            # Group reports by Name
             result.setdefault(r.Name, []).append(data)
 
         return result
@@ -64,7 +59,7 @@ def load_reports():
 
 def save_report(name, data):
     """
-    Save a new report into the database.
+    Save report into database.
     """
 
     db = SessionLocal()
@@ -87,7 +82,7 @@ def save_report(name, data):
 
 def load_hiit_sessions(user):
     """
-    Load HIIT sessions for the logged-in user.
+    Load HIIT sessions for logged-in user.
     """
 
     db = SessionLocal()
@@ -105,16 +100,13 @@ def load_hiit_sessions(user):
 
         for s in sessions:
             data = s.__dict__.copy()
-
-            # Remove SQLAlchemy internal metadata
             data.pop("_sa_instance_state", None)
-
             result.append(data)
 
         return result
 
     except Exception as e:
-        print("Error loading HIIT sessions:", e)
+        print("Error loading HIIT:", e)
         return []
 
     finally:
