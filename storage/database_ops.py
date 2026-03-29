@@ -1,53 +1,118 @@
-# -------------------------------------------------------
-# FitCom - Database Configuration (SUPABASE ONLY)
-# -------------------------------------------------------
+# ============================================================
+# FitCom - Database Operations
+# Author: Anand Kumar
+# ============================================================
 
 import streamlit as st
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from database import SessionLocal
+from models import Report, HIITSession
 
-# -------------------------------------------------------
-# DATABASE URL (MANDATORY - NO FALLBACK)
-# -------------------------------------------------------
 
-def get_database_url():
+# ============================================================
+# LOAD REPORTS
+# ============================================================
+
+def load_reports():
     """
-    Load DATABASE_URL strictly from Streamlit secrets.
-    Fail immediately if not found.
+    Load reports for the logged-in user only.
     """
-    if "DATABASE_URL" not in st.secrets:
-        raise ValueError(
-            "❌ DATABASE_URL not found in .streamlit/secrets.toml. "
-            "Supabase connection is required."
-        )
-    
-    return st.secrets["DATABASE_URL"]
+
+    db = SessionLocal()
+
+    try:
+        user = st.session_state.get("user")
+
+        if not user:
+            return {}
+
+        reports = db.query(Report).filter(
+            Report.IsDeleted == False,
+            Report.UserId == user
+        ).all()
+
+        result = {}
+
+        for r in reports:
+            data = r.__dict__.copy()
+
+            # Remove SQLAlchemy internal key
+            if "_sa_instance_state" in data:
+                del data["_sa_instance_state"]
+
+            # Group by Name
+            if r.Name not in result:
+                result[r.Name] = []
+
+            result[r.Name].append(data)
+
+        return result
+
+    except Exception as e:
+        print("Error loading reports:", e)
+        return {}
+
+    finally:
+        db.close()
 
 
-DATABASE_URL = get_database_url()
+# ============================================================
+# SAVE REPORT
+# ============================================================
 
-# -------------------------------------------------------
-# ENGINE
-# -------------------------------------------------------
+def save_report(name, data):
+    """
+    Save report into database.
+    """
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,   # Keeps connection alive
-    echo=False            # Set True only for debugging
-)
+    db = SessionLocal()
 
-# -------------------------------------------------------
-# SESSION
-# -------------------------------------------------------
+    try:
+        report = Report(**data)
+        db.add(report)
+        db.commit()
 
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+    except Exception as e:
+        print("Error saving report:", e)
 
-# -------------------------------------------------------
-# BASE
-# -------------------------------------------------------
+    finally:
+        db.close()
 
-Base = declarative_base()
+
+# ============================================================
+# LOAD HIIT SESSIONS
+# ============================================================
+
+def load_hiit_sessions(user):
+    """
+    Load HIIT sessions for logged-in user.
+    """
+
+    db = SessionLocal()
+
+    try:
+        if not user:
+            return []
+
+        sessions = db.query(HIITSession).filter(
+            HIITSession.UserId == user,
+            HIITSession.IsDeleted == False
+        ).all()
+
+        result = []
+
+        for s in sessions:
+            data = s.__dict__.copy()
+
+            if "_sa_instance_state" in data:
+                del data["_sa_instance_state"]
+
+            result.append(data)
+
+        return result
+
+    except Exception as e:
+        print("Error loading HIIT:", e)
+        return []
+
+    finally:
+        db.close()
