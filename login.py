@@ -13,7 +13,6 @@ def login():
 
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
-    # LOGIN
     with tab1:
         email = st.text_input("Email")
         password = st.text_input("Password", type="password")
@@ -28,7 +27,6 @@ def login():
             else:
                 st.error("Invalid credentials")
 
-    # SIGN UP
     with tab2:
         email = st.text_input("New Email")
         password = st.text_input("New Password", type="password")

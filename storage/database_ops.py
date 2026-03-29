@@ -8,6 +8,10 @@ from database import SessionLocal
 from models import Report, HIITSession
 
 
+# ============================================================
+# LOAD REPORTS
+# ============================================================
+
 def load_reports():
     db = SessionLocal()
 
@@ -36,6 +40,10 @@ def load_reports():
         db.close()
 
 
+# ============================================================
+# SAVE REPORT
+# ============================================================
+
 def save_report(name, data):
     db = SessionLocal()
 
@@ -47,6 +55,10 @@ def save_report(name, data):
     finally:
         db.close()
 
+
+# ============================================================
+# LOAD HIIT SESSIONS
+# ============================================================
 
 def load_hiit_sessions(user):
     db = SessionLocal()
