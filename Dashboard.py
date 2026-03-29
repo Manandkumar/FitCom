@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom Dashboard (Final Enhanced with Score Trend)
+# FitCom Dashboard (FINAL STABLE)
 # ============================================================
 
 import streamlit as st
@@ -8,167 +8,99 @@ import matplotlib.pyplot as plt
 
 from sidebar import render_sidebar
 from storage import load_reports
+from storage.database_ops import load_hiit_sessions
 from utils import calculate_health_score
 
 st.set_page_config(layout="wide")
 render_sidebar()
 
-# ============================================================
-# LOGIN
-# ============================================================
-
 user = st.session_state.get("user")
 
 if not user:
-    from login import login
-    login()
+    st.error("Login required")
     st.stop()
 
 st.title("🏠 My Fitness Dashboard")
-st.markdown("---")
 
-# ============================================================
 # LOAD DATA
-# ============================================================
-
 data = load_reports()
 
 records = []
 for _, entries in data.items():
     for r in entries:
-        if not r.get("IsDeleted", False):
+        if not r.get("IsDeleted"):
             records.append(r)
 
 if not records:
-    st.info("No records found")
+    st.info("No records")
     st.stop()
 
 df = pd.DataFrame(records)
-
-# Safe date handling
-df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+df["Date"] = pd.to_datetime(df["Date"])
 df = df.sort_values("Date")
 
 latest = df.iloc[-1]
 
-# ============================================================
-# HEALTH SCORE (FIX + FALLBACK)
-# ============================================================
+# HEALTH SCORE
+score = latest.get("HealthScore")
 
-health_score = latest.get("HealthScore")
-
-if not health_score or health_score == 0:
-    health_score, health_status = calculate_health_score(latest)
+if not score or score == 0:
+    score, status = calculate_health_score(latest)
 else:
-    health_status = latest.get("HealthStatus", "")
+    status = latest.get("HealthStatus", "")
 
-# ============================================================
 # METRICS
-# ============================================================
-
 col1, col2, col3, col4, col5 = st.columns(5)
 
-col1.metric("Weight", latest.get("Weight", 0))
-col2.metric("BMI", latest.get("BMI", 0))
-col3.metric("Body Fat", latest.get("BodyFat", 0))
-col4.metric("Muscle", latest.get("MuscleMass", 0))
-col5.metric("Health Score", health_score)
+col1.metric("Weight", latest["Weight"])
+col2.metric("BMI", latest["BMI"])
+col3.metric("Body Fat", latest["BodyFat"])
+col4.metric("Muscle", latest["MuscleMass"])
+col5.metric("Health Score", score)
 
-st.write(f"Status: {health_status}")
+st.write(status)
 
-# ============================================================
 # PHOTO
-# ============================================================
-
-st.subheader("📸 Latest Photo")
+st.subheader("📸 Photo")
 
 if latest.get("Photo"):
     st.image(latest["Photo"], width=250)
-else:
-    st.info("No photo uploaded")
 
-# ============================================================
 # HIIT
-# ============================================================
+st.subheader("🔥 HIIT")
 
-st.subheader("🔥 HIIT Session")
+sessions = load_hiit_sessions(user)
 
-hiit = latest.get("HIIT", {})
+if sessions:
+    last = sessions[-1]
+    st.write(f"Date: {last['Date']}")
+    st.write(f"Workout: {last['Workout']}")
+    st.write(f"Duration: {last['Duration']} mins")
 
-if hiit:
-    st.write(f"📅 Date: {hiit.get('Date')}")
-    st.write(f"🔢 Session: {hiit.get('SessionNo')}")
-    st.write(f"⏱ Duration: {hiit.get('Duration')} mins")
-
-    st.markdown("### Performance")
-    st.write(f"🏃 Running: {hiit.get('RunningDistance', 0)} km")
-    st.write(f"🚜 Push: {hiit.get('SledgePush', 0)} kg")
-    st.write(f"🚜 Pull: {hiit.get('SledgePull', 0)} kg")
-    st.write(f"🏋️ Lunge: {hiit.get('LungeWalk', 0)} kg")
-    st.write(f"🧳 Carry: {hiit.get('FarmersCarry', 0)} kg")
-    st.write(f"📦 Box: {hiit.get('BoxJump', 0)}")
-    st.write(f"🏐 Wall Ball: {hiit.get('WallBall', 0)}")
-else:
-    st.info("No HIIT data")
-
-# ============================================================
 # TRENDS
-# ============================================================
-
-st.markdown("---")
 st.subheader("📈 Trends")
 
-col1, col2 = st.columns(2)
-
-# Weight Trend
-with col1:
-    fig, ax = plt.subplots()
-    ax.plot(df["Date"], df["Weight"], marker='o')
-    ax.set_title("Weight Trend")
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
-
-# BMI Trend
-with col2:
-    fig, ax = plt.subplots()
-    ax.plot(df["Date"], df["BMI"], marker='o')
-    ax.set_title("BMI Trend")
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
-
-# ============================================================
-# 🔥 HEALTH SCORE TREND (NEW)
-# ============================================================
-
-st.markdown("---")
-st.subheader("📈 Health Score Trend")
-
-scores = []
-
-for _, row in df.iterrows():
-    score = row.get("HealthScore")
-
-    # fallback for old records
-    if not score or score == 0:
-        score, _ = calculate_health_score(row)
-
-    scores.append(score)
-
-df["ComputedHealthScore"] = scores
-
 fig, ax = plt.subplots()
-ax.plot(df["Date"], df["ComputedHealthScore"], marker='o')
-ax.set_title("Health Score Progress")
-ax.set_ylabel("Score")
-plt.xticks(rotation=45)
-
+ax.plot(df["Date"], df["Weight"], marker='o')
 st.pyplot(fig)
 
-# ============================================================
+fig, ax = plt.subplots()
+ax.plot(df["Date"], df["BMI"], marker='o')
+st.pyplot(fig)
+
+# HEALTH SCORE TREND
+scores = []
+for _, row in df.iterrows():
+    s = row.get("HealthScore")
+    if not s or s == 0:
+        s, _ = calculate_health_score(row)
+    scores.append(s)
+
+df["Score"] = scores
+
+fig, ax = plt.subplots()
+ax.plot(df["Date"], df["Score"], marker='o')
+st.pyplot(fig)
+
 # TABLE
-# ============================================================
-
-st.markdown("---")
-st.subheader("📋 Records")
-
-st.dataframe(df, use_container_width=True)
+st.dataframe(df)

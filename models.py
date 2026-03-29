@@ -1,9 +1,8 @@
 # -------------------------------------------------------
-# FitCom - Database Models (SUPABASE READY)
-# Author: Anand Kumar
+# FitCom - Database Models (PRODUCTION READY)
 # -------------------------------------------------------
 
-from sqlalchemy import Column, Integer, String, Float, Boolean
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
 from database import Base
 
 
@@ -32,34 +31,19 @@ class Report(Base):
 
     BMI = Column(Float)
     BodyFat = Column(Float)
-    FatMass = Column(Float)
-    FatFreeBodyWeight = Column(Float)
 
     MuscleMass = Column(Float)
-    MuscleRate = Column(Float)
-    SkeletalMuscle = Column(Float)
-
-    BoneMass = Column(Float)
-    SubcutaneousFat = Column(Float)
-
-    BodyWater = Column(Float)
-    WaterWeight = Column(Float)
-
-    ProteinMass = Column(Float)
-    ProteinRate = Column(Float)
-
     VisceralFat = Column(Float)
     BMR = Column(Float)
-    BodyAge = Column(Integer)
-    WHR = Column(Float)
 
-    IdealBodyWeight = Column(Float)
+    # ✅ NEW (IMPORTANT)
+    HealthScore = Column(Float)
 
     IsDeleted = Column(Boolean, default=False, index=True)
 
 
 # =======================================================
-# HIIT SESSION TABLE
+# HIIT SESSION TABLE (FIXED STRUCTURE)
 # =======================================================
 
 class HIITSession(Base):
@@ -67,17 +51,26 @@ class HIITSession(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # Link to user
     UserId = Column(String, index=True)
+
+    # Optional future relation
+    ReportId = Column(Integer, nullable=True)
 
     Name = Column(String, index=True)
     Date = Column(String, index=True)
 
-    Workout = Column(String)
+    SessionNo = Column(Integer)
     Duration = Column(Integer)
 
-    Calories = Column(Integer)
-    HeartRate = Column(Integer)
+    # ✅ Structured fields (instead of string mess)
+    RunningDistance = Column(Float)
+    SledgePush = Column(Float)
+    SledgePull = Column(Float)
+    LungeWalk = Column(Float)
+    FarmersCarry = Column(Float)
 
-    Notes = Column(String)
+    BoxJump = Column(Integer)
+    WallBall = Column(Integer)
 
     IsDeleted = Column(Boolean, default=False, index=True)
