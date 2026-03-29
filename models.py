@@ -1,5 +1,5 @@
 # -------------------------------------------------------
-# FitCom - Database Models (FINAL PRODUCTION VERSION)
+# FitCom - Database Models
 # -------------------------------------------------------
 
 from sqlalchemy import Column, Integer, String, Float, Boolean
@@ -13,75 +13,53 @@ from database import Base
 class Report(Base):
     __tablename__ = "reports"
 
-    # ---------------------------------------------------
-    # PRIMARY KEY
-    # ---------------------------------------------------
+    # Primary Key
     id = Column(Integer, primary_key=True, index=True)
 
-    # ---------------------------------------------------
-    # USER INFO
-    # ---------------------------------------------------
+    # User Info
     Name = Column(String, index=True)
     Gender = Column(String)
     Date = Column(String, index=True)
     Photo = Column(String)
 
-    # ---------------------------------------------------
-    # BASIC METRICS
-    # ---------------------------------------------------
+    # Basic Metrics
     Age = Column(Integer)
     Height = Column(Float)
     Weight = Column(Float)
 
-    # ---------------------------------------------------
-    # BODY COMPOSITION
-    # ---------------------------------------------------
+    # Body Composition
     BMI = Column(Float)
     BodyFat = Column(Float)
     FatMass = Column(Float)
     FatFreeBodyWeight = Column(Float)
 
-    # ---------------------------------------------------
-    # MUSCLE
-    # ---------------------------------------------------
+    # Muscle
     MuscleMass = Column(Float)
     MuscleRate = Column(Float)
     SkeletalMuscle = Column(Float)
 
-    # ---------------------------------------------------
-    # BODY DETAILS
-    # ---------------------------------------------------
+    # Body Details
     BoneMass = Column(Float)
     SubcutaneousFat = Column(Float)
 
-    # ---------------------------------------------------
-    # HYDRATION
-    # ---------------------------------------------------
+    # Hydration
     BodyWater = Column(Float)
     WaterWeight = Column(Float)
 
-    # ---------------------------------------------------
-    # PROTEIN
-    # ---------------------------------------------------
+    # Protein
     ProteinMass = Column(Float)
     ProteinRate = Column(Float)
 
-    # ---------------------------------------------------
-    # HEALTH METRICS
-    # ---------------------------------------------------
+    # Health Metrics
     VisceralFat = Column(Float)
     BMR = Column(Float)
     BodyAge = Column(Integer)
     WHR = Column(Float)
 
-    # ---------------------------------------------------
-    # TARGET
-    # ---------------------------------------------------
+    # Target
     IdealBodyWeight = Column(Float)
 
-    # ---------------------------------------------------
-    # SOFT DELETE
-    # ---------------------------------------------------
+    # Soft Delete
     IsDeleted = Column(Boolean, default=False, nullable=False, index=True)
 
 
@@ -105,7 +83,14 @@ class HIITSession(Base):
 
     Notes = Column(String)
 
-    # ---------------------------------------------------
-    # SOFT DELETE (CONSISTENT TYPE)
-    # ---------------------------------------------------
+    # Soft Delete
     IsDeleted = Column(Boolean, default=False, nullable=False, index=True)
+
+
+# -------------------------------------------------------
+# CREATE TABLES (SAFE TO RUN MULTIPLE TIMES)
+# -------------------------------------------------------
+
+from database import engine
+
+Base.metadata.create_all(bind=engine)
