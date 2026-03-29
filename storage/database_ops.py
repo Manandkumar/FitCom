@@ -4,8 +4,6 @@
 # ============================================================
 
 import streamlit as st
-
-# Absolute imports (now will work because of config fix)
 from database import SessionLocal
 from models import Report, HIITSession
 
