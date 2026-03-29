@@ -4,18 +4,19 @@
 # ============================================================
 
 # ------------------------------------------------------------
-# ROOT PATH FIX (CRITICAL – DO THIS ONLY HERE)
+# ROOT PATH FIX (APPLIES TO WHOLE APP)
 # ------------------------------------------------------------
 import sys
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Add project root so modules like database.py are discoverable
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 # ------------------------------------------------------------
-# NORMAL IMPORTS (NOW THESE WILL WORK)
+# NORMAL IMPORTS (NOW WILL WORK)
 # ------------------------------------------------------------
 import streamlit as st
 
@@ -31,10 +32,8 @@ if "user" not in st.session_state:
     st.stop()
 
 # ------------------------------------------------------------
-# YOUR EXISTING DASHBOARD CODE BELOW
-# (keep everything else as is)
+# UI
 # ------------------------------------------------------------
-
 st.title("📊 FitCom Dashboard")
 
 render_sidebar()
