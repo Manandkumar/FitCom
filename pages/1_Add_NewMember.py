@@ -5,6 +5,7 @@
 import streamlit as st
 from datetime import datetime
 
+from storage.supabase_storage import upload_image
 from storage import save_report
 from sidebar import render_sidebar
 from ui.theme import apply_theme

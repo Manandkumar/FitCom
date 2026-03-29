@@ -19,6 +19,7 @@ import os
 
 from ui.styles import apply_global_styles
 from sidebar import render_sidebar
+from storage.supabase_storage import sign_out
 from storage import load_reports, load_hiit_sessions
 
 if "user" not in st.session_state:

@@ -10,6 +10,7 @@ import os
 from storage.supabase_storage import sign_out
 
 
+
 def render_sidebar():
 
     # -------------------------------------------------------
