@@ -1,16 +1,17 @@
 # ============================================================
-# FitCom - Add Body Composition Report (DB VERSION - STABLE)
+# FitCom - Add Body Composition Report (SUPABASE STORAGE)
 # ============================================================
 
 import streamlit as st
-import uuid, os
-from PIL import Image
 from datetime import datetime
 
 from storage import save_report
 from sidebar import render_sidebar
 from ui.theme import apply_theme
 from ui.components import page_header, section, card_start, card_end
+
+# ✅ NEW IMPORT
+from storage.supabase_storage import upload_image
 
 # -------------------------------------------------------
 # INIT
@@ -53,24 +54,6 @@ def water_weight(weight, bodywater):
     return round(weight * bodywater / 100, 2)
 
 
-# ✅ FIX: stable image saving (absolute path)
-def save_image(uploaded_file):
-    try:
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        folder = os.path.join(BASE_DIR, "profiles")
-        os.makedirs(folder, exist_ok=True)
-
-        img = Image.open(uploaded_file).convert("RGB")
-        file_path = os.path.join(folder, f"{uuid.uuid4()}.jpg")
-        img.save(file_path)
-
-        return file_path, img
-
-    except Exception as e:
-        st.error(f"Image save failed: {e}")
-        return None, None
-
-
 # =======================================================
 # USER PROFILE
 # =======================================================
@@ -81,13 +64,17 @@ card_start()
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    uploaded = st.file_uploader("Upload Photo")
-    photo_path = None
+
+    uploaded = st.file_uploader("Upload Photo", type=["jpg", "jpeg", "png"])
+    image_url = None
 
     if uploaded:
-        photo_path, img = save_image(uploaded)
-        if img:
-            st.image(img, width=120)
+        image_url = upload_image(uploaded)
+
+        if image_url:
+            st.image(image_url, width=120)
+        else:
+            st.error("Image upload failed")
 
 with col2:
     name = st.text_input("Name")
@@ -123,7 +110,6 @@ with col3:
     muscle_rate = round((muscle_mass / weight) * 100, 2) if weight else 0
     st.metric("Muscle %", muscle_rate)
 
-# Derived
 fat_mass_val = fat_mass(weight, bodyfat)
 ffm = fat_free_mass(weight, fat_mass_val)
 
@@ -205,13 +191,16 @@ if st.button("Save Report", use_container_width=True):
     if not name:
         st.error("Name required")
 
+    elif not image_url:
+        st.error("Please upload photo")
+
     else:
         try:
             report = {
                 "Name": name,
                 "Gender": gender,
                 "Date": datetime.now().strftime("%Y-%m-%d"),
-                "Photo": photo_path,
+                "Photo": image_url,  # ✅ URL instead of file path
                 "Age": int(age),
                 "Height": float(height),
                 "Weight": float(weight),
