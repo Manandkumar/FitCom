@@ -4,11 +4,19 @@
 # ============================================================
 
 import streamlit as st
+import sys
+import os
 
 # ------------------------------------------------------------
-# ABSOLUTE IMPORTS (STREAMLIT SAFE)
+# FIX: Ensure project root is in Python path
 # ------------------------------------------------------------
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+# Now imports will work reliably
 from database import SessionLocal
 from models import Report, HIITSession
 
