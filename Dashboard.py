@@ -10,6 +10,11 @@ from ui.styles import apply_global_styles
 from sidebar import render_sidebar
 from storage import load_reports, load_hiit_sessions
 
+if "user" not in st.session_state:
+    from login import login
+    login()
+    st.stop()
+
 # ------------------------------------------------------------
 # PAGE CONFIG
 # ------------------------------------------------------------
