@@ -7,6 +7,7 @@ import pandas as pd
 
 from sidebar import render_sidebar
 from storage import load_reports, save_report
+from utils import calculate_health_score
 
 st.set_page_config(layout="wide")
 render_sidebar()
@@ -46,20 +47,16 @@ bmi = round(weight / ((height/100)**2), 2)
 
 st.metric("BMI", bmi)
 
-def calc_score(bmi, fat, muscle, weight):
-    score = 0
-    if 18.5 <= bmi <= 24.9:
-        score += 20
-    if fat <= 25:
-        score += 20
-    if muscle >= 40:
-        score += 15
-    if weight <= 90:
-        score += 10
-    return score
+score, status = calculate_health_score({
+    "BMI": bmi,
+    "BodyFat": fat,
+    "MuscleMass": muscle,
+    "VisceralFat": rec.get("VisceralFat", 0),
+    "BMR": rec.get("BMR", 0),
+    "Weight": weight
+})
 
-score = calc_score(bmi, fat, muscle, weight)
-st.metric("Score", score)
+st.metric("Health Score", score)
 
 if st.button("Update"):
 
@@ -67,7 +64,9 @@ if st.button("Update"):
     rec["BodyFat"] = fat
     rec["MuscleMass"] = muscle
     rec["BMI"] = bmi
+
     rec["HealthScore"] = score
+    rec["HealthStatus"] = status
 
     save_report(user, rec)
 

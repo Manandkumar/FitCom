@@ -1,73 +1,29 @@
 # ============================================================
-# FitCom - Utility Functions
-# Author: Anand Kumar
-#
-# Description:
-# Contains reusable helper functions used across the
-# FitCom analytics platform.
-#
-# Includes:
-# • BMI calculation
-# • Fitness score calculation
-# • Health status indicators
+# FitCom - Utility Functions (Final Clean Version)
 # ============================================================
 
 
 # ------------------------------------------------------------
 # BMI Calculation
 # ------------------------------------------------------------
-# Calculates Body Mass Index.
-#
-# Formula:
-# BMI = Weight (kg) / Height (m)^2
-# ------------------------------------------------------------
-
 def calculate_bmi(weight, height_in):
-
     if height_in == 0:
-        return None
+        return 0
 
     height_m = height_in * 0.0254
-
     bmi = weight / (height_m ** 2)
 
     return round(bmi, 2)
 
 
 # ------------------------------------------------------------
-# Fitness Score Calculation
+# HEALTH SCORE (Single Source of Truth)
 # ------------------------------------------------------------
-# Computes an overall fitness score based on key metrics.
-#
-# Metrics considered:
-# • BMI
-# • Body Fat %
-# • Visceral Fat
-# • Body Water %
-#
-# Output range:
-# 0 - 100
-# ------------------------------------------------------------
-
-def calculate_fitness_score(row):
-
-    score = 100
-
-    if row["BMI"] > 25:
-        score -= (row["BMI"] - 25) * 2
-
-    if row["BodyFat"] > 20:
-        score -= (row["BodyFat"] - 20) * 1.5
-
-    if row["VisceralFat"] > 10:
-        score -= (row["VisceralFat"] - 10) * 2
-
-    if row["BodyWater"] < 50:
-        score -= (50 - row["BodyWater"]) * 1.5
-
-    return max(0, round(score))
-
 def calculate_health_score(data):
+    """
+    Calculates health score (0–100) and status
+    """
+
     score = 0
 
     # BMI
@@ -85,23 +41,29 @@ def calculate_health_score(data):
         score += 10
 
     # Muscle Mass
-    mm = data.get("MuscleMass", 0)
-    if mm > 40:
+    if data.get("MuscleMass", 0) >= 40:
         score += 15
 
     # Visceral Fat
-    vf = data.get("VisceralFat", 0)
-    if vf < 10:
+    if data.get("VisceralFat", 0) < 10:
         score += 15
 
     # BMR
-    bmr = data.get("BMR", 0)
-    if bmr > 1200:
+    if data.get("BMR", 0) >= 1200:
         score += 10
 
-    # Weight consistency
-    wt = data.get("Weight", 0)
-    if 50 <= wt <= 90:
+    # Weight Range
+    if 50 <= data.get("Weight", 0) <= 90:
         score += 10
 
-    return min(score, 100)
+    score = min(score, 100)
+
+    # Status
+    if score >= 75:
+        status = "🔥 Excellent"
+    elif score >= 50:
+        status = "👍 Good"
+    else:
+        status = "⚠️ Needs Improvement"
+
+    return score, status

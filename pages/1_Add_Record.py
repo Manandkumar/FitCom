@@ -1,5 +1,5 @@
 # ============================================================
-# FitCom - Add My Fitness Record (Final Fixed)
+# FitCom - Add My Fitness Record
 # ============================================================
 
 import streamlit as st
@@ -8,47 +8,14 @@ from datetime import datetime
 from storage import save_report
 from storage.supabase_storage import upload_image
 from sidebar import render_sidebar
-
-
-# ============================================================
-# HEALTH SCORE FUNCTION
-# ============================================================
-
-def calculate_health_score(data):
-    score = 0
-
-    bmi = data.get("BMI", 0)
-    if 18.5 <= bmi <= 24.9:
-        score += 20
-    elif 25 <= bmi <= 29.9:
-        score += 10
-
-    bf = data.get("BodyFat", 0)
-    if 10 <= bf <= 20:
-        score += 20
-    elif 20 < bf <= 25:
-        score += 10
-
-    if data.get("MuscleMass", 0) >= 40:
-        score += 15
-
-    if data.get("VisceralFat", 0) < 10:
-        score += 15
-
-    if data.get("BMR", 0) >= 1200:
-        score += 10
-
-    if 50 <= data.get("Weight", 0) <= 90:
-        score += 10
-
-    return min(score, 100)
+from utils import calculate_health_score
 
 
 # ============================================================
 # PAGE SETUP
 # ============================================================
 
-st.set_page_config(page_title="Add My Record", layout="wide")
+st.set_page_config(page_title="Add Record", layout="wide")
 render_sidebar()
 
 user = st.session_state.get("user")
@@ -59,6 +26,7 @@ if not user:
 
 st.title("➕ Add My Fitness Record")
 st.markdown("---")
+
 
 # ============================================================
 # INPUTS
@@ -77,6 +45,7 @@ with col2:
 
 with col3:
     weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0, value=70.0)
+
 
 # ============================================================
 # BODY METRICS
@@ -97,6 +66,7 @@ with col2:
 with col3:
     muscle_mass = st.number_input("Muscle Mass", 10.0, 100.0, value=40.0)
 
+
 # ============================================================
 # EXTRA METRICS
 # ============================================================
@@ -111,12 +81,13 @@ with col1:
 with col2:
     bmr = st.number_input("BMR", 500.0, 4000.0, value=1500.0)
 
+
 # ============================================================
-# HIIT TRAINING
+# HIIT
 # ============================================================
 
 st.markdown("---")
-st.subheader("🔥 HIIT Training")
+st.subheader("🔥 HIIT Session")
 
 col1, col2, col3 = st.columns(3)
 
@@ -129,19 +100,22 @@ with col2:
 with col3:
     duration = st.number_input("Duration (minutes)", min_value=1, value=30)
 
-st.markdown("### Optional Performance")
+st.markdown("### Performance")
 
-running_distance = st.number_input("Running (km)", value=0.0)
+running_distance = st.number_input("Running Distance (km)", value=0.0)
 sledge_push = st.number_input("Sledge Push (kg)", value=0.0)
 sledge_pull = st.number_input("Sledge Pull (kg)", value=0.0)
 lunge_walk = st.number_input("Lunge Walk (kg)", value=0.0)
 farmers_carry = st.number_input("Farmers Carry (kg)", value=0.0)
-box_jump = st.number_input("Box Jumps", value=0)
-wall_ball = st.number_input("Wall Balls", value=0)
+box_jump = st.number_input("Box Jump Count", value=0)
+wall_ball = st.number_input("Wall Ball Count", value=0)
+
 
 # ============================================================
 # PHOTO
 # ============================================================
+
+st.subheader("📸 Upload Photo")
 
 uploaded_file = st.file_uploader("Upload Image")
 image_url = None
@@ -150,6 +124,7 @@ if uploaded_file:
     image_url = upload_image(uploaded_file)
     if image_url:
         st.image(image_url, width=200)
+
 
 # ============================================================
 # SAVE
@@ -163,7 +138,7 @@ if st.button("💾 Save Record", use_container_width=True):
         st.error("Duration is mandatory")
         st.stop()
 
-    health_score = calculate_health_score({
+    health_score, health_status = calculate_health_score({
         "BMI": bmi,
         "BodyFat": bodyfat,
         "MuscleMass": muscle_mass,
@@ -171,14 +146,6 @@ if st.button("💾 Save Record", use_container_width=True):
         "BMR": bmr,
         "Weight": weight
     })
-
-    # Health interpretation
-    if health_score >= 75:
-        status = "🔥 Excellent"
-    elif health_score >= 50:
-        status = "👍 Good"
-    else:
-        status = "⚠️ Needs Improvement"
 
     report = {
         "UserId": user,
@@ -198,7 +165,7 @@ if st.button("💾 Save Record", use_container_width=True):
         "BMR": bmr,
 
         "HealthScore": health_score,
-        "HealthStatus": status,
+        "HealthStatus": health_status,
 
         "HIIT": {
             "Date": str(hiit_date),
@@ -220,4 +187,4 @@ if st.button("💾 Save Record", use_container_width=True):
 
     st.success("Record saved successfully ✅")
     st.metric("Health Score", health_score)
-    st.write(f"Status: {status}")
+    st.write(f"Status: {health_status}")
