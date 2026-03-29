@@ -96,7 +96,7 @@ def render_sidebar():
     # -------------------------------------------------------
 
     st.sidebar.markdown("<div class='logo-box'>", unsafe_allow_html=True)
-    st.sidebar.image("logo.png", use_column_width="stretch")
+    st.sidebar.image("logo.png", width="stretch")
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
     # -------------------------------------------------------
