@@ -13,10 +13,18 @@ from models import Report, HIITSession
 # ============================================================
 
 def load_reports():
+    """
+    Load reports only for the logged-in user.
+    """
+
     db = SessionLocal()
 
     try:
         user = st.session_state.get("user")
+
+        # If no user logged in, return empty
+        if not user:
+            return {}
 
         reports = db.query(Report).filter(
             Report.IsDeleted == False,
@@ -27,8 +35,11 @@ def load_reports():
 
         for r in reports:
             data = r.__dict__.copy()
+
+            # Remove SQLAlchemy internal field
             data.pop("_sa_instance_state", None)
 
+            # Group by Name
             result.setdefault(r.Name, []).append(data)
 
         return result
@@ -42,6 +53,10 @@ def load_reports():
 # ============================================================
 
 def save_report(name, data):
+    """
+    Save a new report to database.
+    """
+
     db = SessionLocal()
 
     try:
@@ -54,13 +69,20 @@ def save_report(name, data):
 
 
 # ============================================================
-# LOAD HIIT
+# LOAD HIIT SESSIONS (USER FILTERED)
 # ============================================================
 
 def load_hiit_sessions(user):
+    """
+    Load HIIT sessions for logged-in user.
+    """
+
     db = SessionLocal()
 
     try:
+        if not user:
+            return []
+
         sessions = db.query(HIITSession).filter(
             HIITSession.UserId == user,
             HIITSession.IsDeleted == False

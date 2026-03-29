@@ -1,26 +1,28 @@
 # ============================================================
-# FitCom - Sidebar Navigation (SaaS Stable Version)
+# FitCom - Sidebar Navigation (SaaS + Auth Ready)
+# Author: Anand Kumar
 # ============================================================
 
 import streamlit as st
 import os
 
+# ✅ NEW IMPORT (AUTH LOGOUT)
+from storage.supabase_storage import sign_out
+
 
 def render_sidebar():
 
     # -------------------------------------------------------
-    # SIDEBAR STYLING (STABLE + NO CONFLICTS)
+    # SIDEBAR STYLING
     # -------------------------------------------------------
 
     st.markdown("""
     <style>
 
-    /* Hide default navigation */
     div[data-testid="stSidebarNav"] {
         display: none;
     }
 
-    /* Sidebar container */
     section[data-testid="stSidebar"] {
         width: 260px !important;
         min-width: 260px !important;
@@ -29,27 +31,23 @@ def render_sidebar():
         border-right: 1px solid #E6EAF0;
     }
 
-    /* Sidebar padding */
     section[data-testid="stSidebar"] .block-container {
         padding-top: 1rem;
         padding-left: 0.8rem;
         padding-right: 0.8rem;
     }
 
-    /* Typography */
     section[data-testid="stSidebar"] * {
         font-size: 14px;
         color: #2C2C2C;
     }
 
-    /* Logo */
     .logo-box {
         padding: 10px 6px;
         margin-bottom: 10px;
         border-bottom: 1px solid #E6EAF0;
     }
 
-    /* Navigation links */
     section[data-testid="stSidebar"] a {
         display: block;
         padding: 10px 12px;
@@ -60,13 +58,11 @@ def render_sidebar():
         transition: all 0.15s ease;
     }
 
-    /* Hover effect */
     section[data-testid="stSidebar"] a:hover {
         background: rgba(31,167,161,0.08);
         color: #1FA7A1 !important;
     }
 
-    /* Active page */
     section[data-testid="stSidebar"] a[aria-current="page"] {
         background: #1FA7A1 !important;
         color: white !important;
@@ -74,7 +70,6 @@ def render_sidebar():
         box-shadow: 0 2px 6px rgba(31,167,161,0.25);
     }
 
-    /* Divider */
     hr {
         border: none;
         height: 1px;
@@ -82,7 +77,6 @@ def render_sidebar():
         margin: 10px 0;
     }
 
-    /* Footer */
     .sidebar-footer {
         font-size: 12px;
         color: #888;
@@ -109,70 +103,33 @@ def render_sidebar():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # ---------------- NAVIGATION ----------------
-
-        st.page_link("Dashboard.py", label="🏠 Dashboard")
-
-        st.page_link(
-            "pages/9_Member_Dashboard.py",
-            label="👤 Individual Board"
-        )
-
-        st.page_link(
-            "pages/2_Progress.py",
-            label="📊 Progress"
-        )
-
-        st.page_link(
-            "pages/1_Add_NewMember.py",
-            label="➕ Add Member"
-        )
-
-        st.page_link(
-            "pages/3_Leaderboard.py",
-            label="🏆 Leaderboard"
-        )
-
-        st.page_link(
-            "pages/4_AI_Coach.py",
-            label="🤖 AI Coach"
-        )
-
-        st.page_link(
-            "pages/5_Athlete_Comparison.py",
-            label="⚖️ Comparison"
-        )
-
-        st.page_link(
-            "pages/6_Edit_Report.py",
-            label="✏️ Edit Report"
-        )
-
-        st.page_link(
-            "pages/8_Weekly_Report.py",
-            label="📅 Weekly Report"
-        )
-
-        st.page_link(
-            "pages/7_Admin_Dashboard.py",
-            label="⚙️ Admin"
-        )
+        # ---------------- USER INFO ----------------
+        user = st.session_state.get("user", "Guest")
+        st.markdown(f"👤 **{user}**")
 
         st.markdown("---")
 
-        # ---------------- FOOTER ----------------
+        # ---------------- NAVIGATION ----------------
+        st.page_link("Dashboard.py", label="🏠 Dashboard")
+        st.page_link("pages/1_Add_NewMember.py", label="➕ Add Member")
+        st.page_link("pages/2_Progress.py", label="📊 Progress")
+        st.page_link("pages/3_Leaderboard.py", label="🏆 Leaderboard")
+        st.page_link("pages/4_AI_Coach.py", label="🤖 AI Coach")
+        st.page_link("pages/5_Athlete_Comparison.py", label="⚖️ Comparison")
+        st.page_link("pages/6_Edit_Report.py", label="✏️ Edit Report")
+        st.page_link("pages/8_Weekly_Report.py", label="📅 Weekly Report")
+        st.page_link("pages/7_Admin_Dashboard.py", label="⚙️ Admin")
 
+        st.markdown("---")
+
+        # ---------------- LOGOUT ----------------
+        if st.button("🚪 Logout", use_container_width=True):
+            sign_out()                     # Supabase logout
+            st.session_state.clear()       # Clear session
+            st.rerun()
+
+        # ---------------- FOOTER ----------------
         st.markdown(
             "<div class='sidebar-footer'>📧 manandkumar@gmail.com</div>",
             unsafe_allow_html=True
         )
-
-# ============================================================
-# LOGOUT
-# ============================================================
-
-st.markdown("---")
-
-if st.button("🚪 Logout"):
-    st.session_state.clear()
-    st.rerun()
